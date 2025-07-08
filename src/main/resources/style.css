@@ -1,0 +1,500 @@
+@font-face {
+    src: url('fonts/Liberation_Mono_Bold.ttf');
+}
+
+@font-face {
+    src: url('fonts/Liberation_Mono_Bold_Italic.ttf');
+}
+
+@font-face {
+    src: url('fonts/Liberation_Mono_Italic.ttf');
+}
+
+@font-face {
+    src: url('fonts/Liberation_Mono.ttf');
+}
+
+.root {
+    -fx-base: #000000;
+    -fx-main: #146478;
+    -fx-none: transparent;
+    -fx-font: 14 'Liberation Mono Bold';
+
+    -fx-accent: #0D404C;
+    -fx-focus-color: derive(#146478, 40%);
+    -fx-faint-focus-color: #14647822;
+
+    -fx-text-base-color: #146478;
+    -fx-dark-text-color: #000000;
+    -fx-mid-text-color: #0D404C;
+    -fx-light-text-color: #146478;
+
+    -fx-default-button: #000000;
+}
+
+.alert > .content.label,
+.progress-dialog > .label {
+    -fx-padding: 0.833em 0.833em 0 0.833em;
+}
+
+.list-view {
+    -fx-background-color: -fx-none;
+}
+
+.alert,
+.tooltip,
+.context-menu,
+.progress-dialog {
+    -fx-background-color: #000000F0;
+    -fx-background-radius: 0;
+}
+
+.scroll-pane,
+.scroll-pane > .viewport,
+.scroll-pane > .viewport > * > .content,
+.progress-dialog .header-panel {
+    -fx-background-color: -fx-none;
+}
+
+.arrow-button,
+.arrow-button > .arrow {
+    -fx-background-color: -fx-none;
+    -fx-padding: 0;
+    -fx-shape: null;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-root                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-root-corner {
+    -fx-background-color: -fx-none;
+    -fx-max-height: 0.333333em;
+    -fx-min-height: 0.333333em;
+    -fx-max-width: 0.333333em;
+    -fx-min-width: 0.333333em;
+    -fx-padding: 0;
+}
+
+.modz-root-border > .line {
+    -fx-border-color: -fx-none;
+    -fx-border-width: 0.166667em;
+    -fx-padding: 0;
+}
+
+.modz-root-border:pressed:center-left {
+    -fx-border-color: -fx-none -fx-none -fx-none -fx-main;
+}
+
+.modz-root-border:pressed:center-right {
+    -fx-border-color: -fx-none -fx-main -fx-none -fx-none;
+}
+
+.modz-root-border:pressed:top-center {
+    -fx-border-color: -fx-main -fx-none -fx-none -fx-none;
+}
+
+.modz-root-border:pressed:bottom-center {
+    -fx-border-color: -fx-none -fx-none -fx-main -fx-none;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-head                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-head {
+    -fx-padding: 0 1em 0 1em;
+    -fx-background-color: linear-gradient(to bottom, derive(-fx-base, 75%) 0%, -fx-outer-border 90%),
+                          linear-gradient(to bottom, derive(-fx-base, 46.9%) 2%, derive(-fx-base, 5%) 95%);
+}
+
+.modz-head .ikonli-font-icon {
+    -fx-icon-size: 18;
+}
+
+.modz-head > * > .separator:vertical {
+    -fx-padding: 0 0 0 0.25em;
+}
+
+.modz-head > .menu-button > .label > .ikonli-font-icon {
+    -fx-icon-color: -fx-main;
+}
+
+.modz-head > * > .button,
+.modz-head > .menu-button {
+    -fx-background-color: -fx-none;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: -fx-none;
+}
+
+.modz-head > * > .button,
+.modz-head > .menu-button > .label {
+    -fx-text-fill: -fx-main;
+    -fx-padding: 0.25em;
+}
+
+.modz-head > * > .button:hover,
+.modz-head > * > .button:showing {
+    -fx-border-color: -fx-none -fx-none -fx-main -fx-none;
+}
+
+.modz-head > .menu-button:hover,
+.modz-head > .menu-button:showing {
+    -fx-background-color: -fx-main;
+}
+
+.modz-head > .menu-button:hover > .label,
+.modz-head > .menu-button:showing > .label {
+    -fx-text-fill: -fx-base;
+}
+
+.modz-head > .menu-button:hover > .label > .ikonli-font-icon,
+.modz-head > .menu-button:showing > .label > .ikonli-font-icon {
+    -fx-icon-color: -fx-base;
+}
+
+.modz-head > .menu-button > * > .context-menu {
+    -fx-background-color: -fx-main;
+}
+
+.modz-head > .menu-button > * > .context-menu > * > .menu-item > .label {
+    -fx-text-fill: -fx-base;
+}
+
+.modz-head > .menu-button > * > .context-menu > * > .menu-item:focused {
+    -fx-background-color: -fx-base;
+}
+
+.modz-head > .menu-button > * > .context-menu > * > .menu-item:focused > .label {
+    -fx-text-fill: -fx-main;
+}
+
+.modz-head > .menu-button > * > .context-menu > * > .menu-item:focused > * > .ikonli-font-icon {
+    -fx-icon-color: -fx-main;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-body                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-body > .split-pane:horizontal {
+    -fx-background-color: #000000B8;
+}
+
+.modz-body > .split-pane:horizontal > .split-pane-divider {
+    -fx-background-color: -fx-none;
+    -fx-background-insets: 0;
+    -fx-border-color: -fx-none -fx-none -fx-none -fx-accent;
+    -fx-border-width: 0.083333em;
+    -fx-padding: 0;
+}
+
+.modz-body > .split-pane > .split-pane-divider:pressed {
+   -fx-border-color: -fx-none -fx-none -fx-none -fx-main;
+}
+
+.modz-list > * {
+    -fx-background-color: -fx-accent;
+}
+
+.modz-vbox-btns {
+    -fx-background-insets: 0 -0.166667em 0 0;
+    -fx-background-color: #000000D0;
+    -fx-padding: 0.25em;
+    -fx-spacing: 0.25em;
+}
+
+.modz-vbox-btns > .button,
+.modz-vbox-btns > .menu-button,
+.modz-vbox-btns > .color-picker {
+    -fx-content-display: graphic-only;
+    -fx-max-height: 32;
+    -fx-min-height: 32;
+    -fx-max-width: 32;
+    -fx-min-width: 32;
+}
+
+.modz-vbox-btns > .color-picker > .color-picker-label,
+.modz-vbox-btns > .menu-button > .label {
+    -fx-padding: 0.416667em;
+}
+
+.modz-vbox-btns > .button > .ikonli-font-icon,
+.modz-vbox-btns > .menu-button > .label > .ikonli-font-icon,
+.modz-vbox-btns > .color-picker > .color-picker-label > .ikonli-font-icon {
+    -fx-icon-size: 21;
+}
+
+.modz-vbox-btns > .button > .ikonli-font-icon,
+.modz-vbox-btns > .menu-button > .label > .ikonli-font-icon {
+    -fx-icon-color: -fx-accent;
+}
+
+.modz-vbox-btns > .menu-button > * > .context-menu {
+    -fx-background-color: #020C0E;
+    -fx-background-radius: 0 0 2 1;
+    -fx-min-width: 32;
+}
+
+.modz-vbox-btns > .menu-button > * > .context-menu > * > .menu-item > .ikonli-font-icon {
+    -fx-icon-color: -fx-accent;
+    -fx-icon-size: 18;
+}
+
+.modz-vbox-btns > .menu-button > * > .context-menu > * > .menu-item:focused > .ikonli-font-icon {
+    -fx-icon-color: -fx-base;
+}
+
+.modz-list-view {
+    -fx-background-position: center;
+    -fx-background-repeat: no-repeat;
+    -fx-background-image: url("black.png");
+    -fx-background-size: contain;
+    -fx-padding: 0;
+}
+
+.modz-search > * > .context-menu {
+    -fx-background-color: -fx-none !important;
+    -fx-padding: 0;
+}
+
+.modz-search > * > .context-menu > * > .menu-item {
+    -fx-background-color: -fx-none;
+    -fx-padding: 0.166667em 0.666667em 0.166667em 0;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-cell                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-cell,
+.modz-cell-nested {
+    -fx-min-height: 25;
+    -fx-padding: 0;
+}
+
+.modz-cell > .modz-more > .title {
+    -fx-background-radius: 0;
+    -fx-padding: 0.166667em 0 0.166667em 0;
+}
+
+.modz-cell-over > .modz-cell-head > .label {
+    -fx-font: 13 'Liberation Mono Bold Italic';
+}
+
+.modz-cell-nested > .modz-cell-head {
+    -fx-padding: 0 0.75em 0 0.75em;
+}
+
+.modz-cell-nested-context-menu > * > .menu-item > * > .ikonli-font-icon {
+    -fx-icon-color: -fx-main;
+    -fx-icon-size: 18;
+}
+
+.modz-cell-nested {
+    -fx-background-color: -fx-none;
+}
+
+.modz-cell:selected > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .content > .modz-more-body > .list-view {
+    -fx-background-color: #146478B0;
+}
+
+.modz-cell-dragged,
+.modz-cell {
+    -fx-background-color: derive(#146478B0, -5%);
+}
+
+.modz-cell-dragged:odd,
+.modz-cell:odd {
+    -fx-background-color: derive(#146478B0, -10%);
+}
+
+.modz-cell-nested:selected > .modz-cell-head,
+.modz-cell:selected > .modz-more > .title,
+.modz-cell:selected > .modz-more > .content {
+    -fx-background-color: #000000B0;
+}
+
+.modz-cell-nested:checked:invalid,
+.modz-cell:checked:invalid > .modz-more > .title {
+    -fx-background-color: #E80000B0;
+}
+
+.modz-cell:checked:invalid:selected > .modz-more > .title {
+    -fx-background-color: #000000B0;
+}
+
+.modz-cell-nested > .modz-cell-head > .label,
+.modz-cell > .modz-more > .title > .modz-more-head > .label,
+.modz-cell > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .title > .modz-more-head > .label,
+.modz-cell > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .content > .modz-more-body > * > .modz-cell-desc {
+    -fx-text-fill: -fx-base;
+}
+
+.modz-cell-nested:selected > .modz-cell-head > .label,
+.modz-cell:selected > .modz-more > .title > .modz-more-head > .label,
+.modz-cell:selected > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .title > .modz-more-head > .label,
+.modz-cell:selected > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .content > .modz-more-body > * > .modz-cell-desc {
+    -fx-text-fill: -fx-main;
+}
+
+.modz-cell-nested:checked:invalid > .modz-cell-head > .label,
+.modz-cell:checked:invalid > .modz-more > .title > .modz-more-head > .label {
+    -fx-text-fill: -fx-base;
+}
+
+.modz-cell-nested:selected:checked:invalid > .modz-cell-head > .label,
+.modz-cell:selected:checked:invalid > .modz-more > .title > .modz-more-head > .label {
+    -fx-text-fill: #E82828;
+}
+
+.modz-cell > .modz-more > .title > .modz-more-head > .modz-more-icon {
+    -fx-icon-color: -fx-base;
+}
+
+.modz-cell:selected > .modz-more > .title > .modz-more-head > .modz-more-icon {
+    -fx-icon-color: -fx-main;
+}
+
+.modz-cell:checked:invalid > .modz-more > .title > .modz-more-head > .modz-more-icon {
+    -fx-icon-color: -fx-base;
+}
+
+.modz-cell:selected:checked:invalid > .modz-more > .title > .modz-more-head > .modz-more-icon {
+    -fx-icon-color: #E82828;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-more                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-more {
+    -fx-content-display: graphic-only;
+    -fx-background-color: -fx-none;
+    -fx-border-width: 0;
+}
+
+.modz-more,
+.modz-more > .title,
+.modz-more > .title > .arrow-button,
+.modz-more > .title > .arrow-button > .arrow {
+    -fx-background-color: -fx-none;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+    -fx-shape: null;
+}
+
+.modz-more > .content {
+    -fx-background-color: -fx-none;
+    -fx-border-insets: 0.25em 0 0.25em 0.666667em;
+    -fx-border-width: 0 0 0 0.083333em;
+}
+
+.modz-cell-head,
+.modz-more-head {
+    -fx-spacing: 3;
+}
+
+.modz-cell-head > .modz-icon,
+.modz-more-head > .modz-icon {
+    -fx-icon-size: 21;
+}
+
+.modz-cell-head > .label,
+.modz-more-head > .label {
+    -fx-font: 14 'Liberation Mono Bold';
+}
+
+.modz-more-body {
+    -fx-padding: 0 0 0 0.75em;
+}
+
+.modz-more-body > .accordion > .modz-more > .content > .modz-more-body > * > .modz-cell-desc {
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-background-color: -fx-none;
+    -fx-padding: 0;
+    -fx-font: 13 'Liberation Mono';
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-page                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-page {
+    -fx-background-color: #0D404C80;
+}
+
+.modz-page > .page {
+    -fx-translate-y: 23;
+}
+
+.modz-page > .pagination-control > .control-box {
+    -fx-padding: 1em 0 1em 0;
+}
+
+.modz-page > .pagination-control > .control-box > .number-button,
+.modz-page > .pagination-control > .control-box > .left-arrow-button,
+.modz-page > .pagination-control > .control-box > .right-arrow-button {
+    -fx-background-color: -fx-none, -fx-outer-border, -fx-inner-border, -fx-body-color;
+}
+
+.modz-page > .pagination-control > .control-box > .number-button:selected,
+.modz-page > .pagination-control > .control-box > .left-arrow-button:selected,
+.modz-page > .pagination-control > .control-box > .right-arrow-button:selected,
+.modz-page:focused > .pagination-control > .control-box > .number-button:selected {
+    -fx-base: -fx-accent;
+}
+
+.modz-page > .pagination-control > .control-box > .left-arrow-button > .left-arrow,
+.modz-page > .pagination-control > .control-box > .right-arrow-button > .right-arrow {
+    -fx-background-color: -fx-accent, -fx-main;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-exec-btns                                                              *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-exec-btns {
+    -fx-spacing: 0.25em;
+}
+
+.modz-exec-btns > .button {
+    -fx-background-color: -fx-none, -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-content-display: graphic-only;
+    -fx-padding: 0.166667em;
+}
+
+.modz-exec-btns > .button:focused {
+    -fx-background-color: -fx-focus-color, -fx-inner-border, -fx-body-color, -fx-faint-focus-color, -fx-body-color;
+}
+
+.modz-exec-btns > .button > .ikonli-font-icon {
+    -fx-icon-color: -fx-main;
+    -fx-icon-size: 19;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-help                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-help {
+    -fx-background-color: -fx-base;
+}
