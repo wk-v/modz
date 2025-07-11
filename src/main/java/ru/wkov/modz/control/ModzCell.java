@@ -28,6 +28,8 @@ import static javafx.scene.paint.Color.BLACK;
 import static org.apache.commons.lang3.ArrayUtils.toArray;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FOLDER_OPEN_OUTLINE;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OFF_OUTLINE;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OUTLINE;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignS.STEAM;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignW.WEB;
 import static ru.wkov.modz.ModzUtil.*;
@@ -210,6 +212,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
             case CARZ -> icon.setCodes(CAR, CAR_OFF);
             case MAPZ -> icon.setCodes(CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OFF_OUTLINE);
             case MODZ -> icon.setCodes(COG_OUTLINE, COG_OFF_OUTLINE);
+            case TXTR -> icon.setCodes(IMAGE_OUTLINE, IMAGE_OFF_OUTLINE);
         }
 
         var color = selected ? getMainColor() : BLACK;
@@ -381,6 +384,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
                     case MAPZ -> icon.setCodes(CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OFF_OUTLINE);
                     case MODZ -> icon.setCodes(COG_OUTLINE, COG_OFF_OUTLINE);
                     case NULL -> icon.setCodes(CLOSE_OUTLINE, CLOSE_OUTLINE);
+                    case TXTR -> icon.setCodes(IMAGE_OUTLINE, IMAGE_OFF_OUTLINE);
                 }
 
                 var color = selected ? getMainColor() : BLACK;

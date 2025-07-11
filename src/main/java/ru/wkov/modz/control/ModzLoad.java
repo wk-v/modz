@@ -207,6 +207,15 @@ public class ModzLoad extends Button implements ModzBean {
                                                 });
                                             }
 
+                                            var type = MODZ;
+
+                                            path = modPath.resolve("media");
+                                            if (exists(path.resolve("texturepacks")) || exists(path.resolve("textures"))) {
+                                                type = TXTR;
+                                            } else if (exists(path.resolve("scripts").resolve("vehicles"))) {
+                                                type = CARZ;
+                                            }
+
                                             var modz = new ModzItem(
                                                     modPath,
                                                     null,
@@ -215,7 +224,7 @@ public class ModzLoad extends Button implements ModzBean {
                                                     null,
                                                     modPath.getParent().getParent().getFileName().toString(),
                                                     firstNonBlank(info.val("description"), "[no description]"),
-                                                    exists(modPath.resolve("media").resolve("scripts").resolve("vehicles")) ? CARZ : MODZ,
+                                                    type,
                                                     null,
                                                     info.vals("require"),
                                                     info.vals("poster")

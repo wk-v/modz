@@ -86,6 +86,10 @@ public class ModzDraw extends Canvas implements ModzBean {
         draw();
     }
 
+    public boolean getState(ModzLevel level) {
+        return states.get(level);
+    }
+
     private void draw() {
         try {
             latch.await();

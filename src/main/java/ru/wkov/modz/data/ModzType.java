@@ -8,5 +8,6 @@ public enum ModzType {
     NULL,
     CARZ,
     MAPZ,
-    MODZ
+    MODZ,
+    TXTR
 }

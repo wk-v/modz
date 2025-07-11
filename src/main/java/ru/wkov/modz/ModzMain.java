@@ -65,7 +65,7 @@ public class ModzMain extends Application {
         mainColor = Color.web("#146478");
         darkColor = Color.web("#0D404C");
         failColor = Color.web("#E82828");
-        aboutLogo = new Image("about.png", false);
+        aboutLogo = new Image("about.png", true);
         blackIcon = new Image("black.png", false);
         colorIcon = new Image("color.png", false);
 

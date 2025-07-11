@@ -1,10 +1,12 @@
 package ru.wkov.modz.control;
 
 import javafx.animation.FillTransition;
+import javafx.animation.ParallelTransition;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import ru.wkov.modz.ModzBean;
@@ -12,12 +14,11 @@ import ru.wkov.modz.data.ModzItem;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 
 import static java.util.Comparator.comparing;
 import static javafx.scene.paint.Color.TRANSPARENT;
-import static javafx.util.Duration.ZERO;
+import static javafx.scene.paint.Color.WHITE;
 import static javafx.util.Duration.millis;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignN.*;
 import static ru.wkov.modz.ModzUtil.prop;
@@ -27,7 +28,7 @@ import static ru.wkov.modz.ModzUtil.prop;
  */
 public class ModzRect extends Rectangle implements ModzBean {
 
-    private static final List<FillTransition> TRANSITIONS = new LinkedList<>();
+    private static final ParallelTransition TRANSITION = new ParallelTransition();
 
     private static final Comparator<ModzItem> COMPARATOR =
             comparing(ModzItem::isChecked).reversed().thenComparing(ModzItem::getPriority);
@@ -72,22 +73,20 @@ public class ModzRect extends Rectangle implements ModzBean {
         transition.setAutoReverse(true);
         transition.setCycleCount(-1);
 
-        TRANSITIONS.add(transition);
-
         setStrokeWidth(STROKE_WIDTH);
         refresh();
     }
 
     public void refresh() {
-        transition.jumpTo(ZERO);
-        transition.stop();
+        TRANSITION.stop();
+        TRANSITION.getChildren().remove(transition);
 
         enabled = false;
 
         var userData = (ModzItem) null;
         var stroke = TRANSPARENT;
         var color = TRANSPARENT;
-        var fill = TRANSPARENT;
+        var fill = (Paint) TRANSPARENT;
 
         var selected = false;
         var from = TRANSPARENT;
@@ -154,12 +153,10 @@ public class ModzRect extends Rectangle implements ModzBean {
         if (enabled) {
             if (selected) {
                 if (blinked.get()) {
-                    transition.play();
-
-                    TRANSITIONS.forEach(transition ->
-                            transition.jumpTo(ZERO));
+                    TRANSITION.getChildren().add(transition);
+                    TRANSITION.playFromStart();
                 } else {
-                    stroke = fill.invert();
+                    stroke = WHITE;
                 }
             }
             setOpacity(1.0);

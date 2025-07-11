@@ -259,7 +259,6 @@ public class ModzView extends StackPane implements ModzBean {
                             .collect(toMap(identity(), level -> false));
 
                     base.setVisible(false);
-                    base.setState(L0, true);
 
                     for (int i = 0; i < items.size(); i++) {
                         var item = items.get(i);
@@ -267,11 +266,14 @@ public class ModzView extends StackPane implements ModzBean {
 
                         var state = i;
                         item.setOnAction(event -> {
-                            states.replaceAll((k, v) -> k.ordinal() < state);
-
+                            if (!base.getState(L0)) {
+                                base.setState(L0, true);
+                            }
                             base.setVisible(state > 0);
 
+                            states.replaceAll((level, v) -> level.ordinal() < state);
                             draw.setStates(states);
+
                             icon.setState(state);
                         });
                     }

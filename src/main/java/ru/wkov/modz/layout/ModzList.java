@@ -49,7 +49,9 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.controlsfx.control.textfield.TextFields.bindAutoCompletion;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FILTER_CHECK_OUTLINE;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignM.*;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OFF_OUTLINE;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OUTLINE;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignM.MAGNIFY;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignP.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignS.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignT.TRASH_CAN_OUTLINE;
@@ -144,7 +146,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         finder.getStyleClass().add("modz-search");
         finder.setPopupSide(LEFT);
 
-        var states = observableArrayList(0, 0, 0, 0, 0, (Object) "");
+        var states = observableArrayList(0, 0, 0, 0, 0, 0, (Object) "");
         var filter = new MenuButton("", new FontIcon(FILTER_CHECK_OUTLINE),
                 new CustomMenuItem() {{
                     var icon = new ModzIcon(CHECKBOX_INTERMEDIATE_VARIANT, CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OUTLINE);
@@ -171,6 +173,12 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                     setHideOnClick(false);
                 }},
                 new CustomMenuItem() {{
+                    var icon = new ModzIcon(IMAGE_OUTLINE, IMAGE_OFF_OUTLINE);
+                    setContent(icon);
+                    setOnAction(event -> states.set(4, icon.nextState()));
+                    setHideOnClick(false);
+                }},
+                new CustomMenuItem() {{
                     var icon = new ModzIcon(COG_OUTLINE, COG_OFF_OUTLINE);
                     setContent(icon);
                     setOnAction(event -> states.set(3, icon.nextState()));
@@ -178,14 +186,12 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                 }}
         );
 
-        // CHECKBOX_INTERMEDIATE CHECKBOX_BLANK_OFF_OUTLINE
-
         search.textProperty()
-                .addListener(prop(state -> states.set(5, state)));
+                .addListener(prop(state -> states.set(6, state)));
 
         states.addListener(list(values ->
                 filtered.setPredicate(item -> {
-                    var title = (String) values.get(5);
+                    var title = (String) values.get(6);
                     var visible = switch ((int) values.get(0)) {
                         case 0 -> true;
                         case 1 -> item.isChecked();
