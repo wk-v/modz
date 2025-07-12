@@ -146,18 +146,18 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         finder.getStyleClass().add("modz-search");
         finder.setPopupSide(LEFT);
 
-        var states = observableArrayList(0, 0, 0, 0, 0, 0, (Object) "");
+        var states = observableArrayList(0, 0, 0, 0, 0, 0, 0, (Object) "");
         var filter = new MenuButton("", new FontIcon(FILTER_CHECK_OUTLINE),
                 new CustomMenuItem() {{
                     var icon = new ModzIcon(CHECKBOX_INTERMEDIATE_VARIANT, CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OUTLINE);
                     setContent(icon);
-                    setOnAction(event -> states.set(0, icon.nextState()));
+                    setOnAction(event -> states.set(6, icon.nextState()));
                     setHideOnClick(false);
                 }},
                 new CustomMenuItem() {{
                     var icon = new ModzIcon(PROGRESS_ALERT, PROGRESS_CHECK, PROGRESS_CLOSE);
                     setContent(icon);
-                    setOnAction(event -> states.set(4, icon.nextState()));
+                    setOnAction(event -> states.set(5, icon.nextState()));
                     setHideOnClick(false);
                 }},
                 new CustomMenuItem() {{
@@ -187,17 +187,17 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         );
 
         search.textProperty()
-                .addListener(prop(state -> states.set(6, state)));
+                .addListener(prop(state -> states.set(7, state)));
 
         states.addListener(list(values ->
                 filtered.setPredicate(item -> {
-                    var title = (String) values.get(6);
-                    var visible = switch ((int) values.get(0)) {
+                    var title = (String) values.get(7);
+                    var visible = switch ((int) values.get(6)) {
                         case 0 -> true;
                         case 1 -> item.isChecked();
                         case 2 -> !item.isChecked();
                         default -> false;
-                    } && switch ((int) values.get(4)) {
+                    } && switch ((int) values.get(5)) {
                         case 0 -> true;
                         case 1 -> !item.isInvalid();
                         case 2 -> item.isInvalid();

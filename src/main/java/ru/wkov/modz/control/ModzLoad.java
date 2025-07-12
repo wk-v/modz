@@ -210,10 +210,10 @@ public class ModzLoad extends Button implements ModzBean {
                                             var type = MODZ;
 
                                             path = modPath.resolve("media");
-                                            if (exists(path.resolve("texturepacks")) || exists(path.resolve("textures"))) {
-                                                type = TXTR;
-                                            } else if (exists(path.resolve("scripts").resolve("vehicles"))) {
+                                            if (exists(path.resolve("scripts").resolve("vehicles"))) {
                                                 type = CARZ;
+                                            } else if (!maps.isEmpty()) {
+                                                type = TXTR;
                                             }
 
                                             var modz = new ModzItem(
