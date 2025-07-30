@@ -232,9 +232,10 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             if (i1 > 0) {
                 var i2 = i1 - 1;
 
+                model.clearSelection();
                 replacing.accept(i1, i2);
                 scrolling.accept(i1, -1);
-                model.clearAndSelect(i2);
+                model.select(i2);
             }
         });
 
@@ -244,9 +245,10 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             if (i1 < filtered.size() - 1) {
                 var i2 = i1 + 1;
 
+                model.clearSelection();
                 replacing.accept(i1, i2);
                 scrolling.accept(i1, 1);
-                model.clearAndSelect(i2);
+                model.select(i2);
             }
         });
 

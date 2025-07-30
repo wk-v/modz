@@ -8,11 +8,10 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import static java.lang.Integer.*;
-import static java.util.stream.Collectors.toSet;
 import static javafx.scene.paint.Color.BLACK;
 import static javafx.scene.paint.Color.WHITE;
 import static ru.wkov.modz.ModzUtil.*;
@@ -28,7 +27,7 @@ public record MapzItem(Path path,
                        Integer minY,
                        Integer maxX,
                        Integer maxY,
-                       Set<MapzTile> tiles,
+                       List<MapzTile> tiles,
                        BooleanProperty includedProperty,
                        IntegerProperty priorityProperty,
                        ObjectProperty<Color> colorProperty) {
@@ -42,7 +41,7 @@ public record MapzItem(Path path,
             0,
             65,
             52,
-            Set.of(),
+            List.of(),
             new SimpleBooleanProperty(true),
             new SimpleIntegerProperty(0),
             new SimpleObjectProperty<>(WHITE)
@@ -73,7 +72,9 @@ public record MapzItem(Path path,
                         return new MapzTile(x, y);
                     })
                     .filter(Objects::nonNull)
-                    .collect(toSet());
+                    .distinct()
+                    .sorted()
+                    .toList();
 
             var id = path.getFileName().toString();
 
@@ -177,7 +178,7 @@ public record MapzItem(Path path,
                 (Integer) export[5],
                 (Integer) export[6],
                 (Integer) export[7],
-                Arrays.stream((Object[]) export[8]).map(MapzTile::valueOf).collect(toSet()),
+                Arrays.stream((Object[]) export[8]).map(MapzTile::valueOf).toList(),
                 new SimpleBooleanProperty((Boolean) export[9]),
                 new SimpleIntegerProperty(0),
                 new SimpleObjectProperty<>(Color.web((String) export[10]))

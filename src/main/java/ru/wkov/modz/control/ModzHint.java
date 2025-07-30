@@ -19,6 +19,7 @@ import ru.wkov.modz.layout.ModzArea;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Comparator.comparingInt;
 import static javafx.scene.control.ContentDisplay.GRAPHIC_ONLY;
 import static javafx.scene.input.MouseEvent.ANY;
 import static javafx.stage.WindowEvent.WINDOW_SHOWING;
@@ -131,6 +132,9 @@ public class ModzHint extends Tooltip implements ModzBean {
             }
         }
 
-        getMaps().setAll(labels.subList(0, i));
+        var maps = labels.subList(0, i);
+        maps.sort(comparingInt(label -> (int) label.getUserData()));
+
+        getMaps().setAll(maps);
     }
 }

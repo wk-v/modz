@@ -128,6 +128,7 @@ public class ModzArea extends StackPane implements ModzBean {
             } else {
                 TRANSITION.getChildren().remove(transition);
                 transition.jumpTo(ZERO);
+                transition.stop();
             }
             TRANSITION.playFromStart();
         }));

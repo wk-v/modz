@@ -199,17 +199,33 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
         rate.setScore(item.getScore());
         text.setText(item.toString());
 
+        var coords = new StringBuilder();
+        if (!item.maps().isEmpty()) {
+            for (var map : item.maps()) {
+                coords.append("\nMap Folder: ").append(map.id());
+                if (!map.isEmpty()) {
+                    coords.append("\n[ ");
+                    for (var tile : map.tiles()) {
+                        coords.append(tile.x()).append('x').append(tile.y()).append(' ');
+                    }
+                    coords.append("]");
+                }
+            }
+            coords.append("\n");
+        }
+
         var data = item.dataProperty().get();
         if (data == null) {
             rate.pseudoClassStateChanged(UNUSED, true);
             desc.setText(String.format("""
                             Workshop ID: %s
                             Mod ID: %s
-                            
+                            %s
                             %s
                             """,
                     item.workshop(),
                     item.id(),
+                    coords,
                     item.description()
             ));
         } else {
@@ -217,7 +233,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
             desc.setText(String.format("""
                             Workshop ID: %s
                             Mod ID: %s
-                            
+                            %s
                             Created: %s
                             Updated: %s
                             
@@ -227,6 +243,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
                             """,
                     item.workshop(),
                     item.id(),
+                    coords,
                     leftPad(data.getCreatedAt().format(DTF), 21),
                     leftPad(data.getUpdatedAt().format(DTF), 21),
                     data.getSubscriptions(),
