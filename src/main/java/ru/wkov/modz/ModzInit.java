@@ -5,7 +5,7 @@ package ru.wkov.modz;
  */
 public class ModzInit {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         ModzMain.main(args);
     }
 }

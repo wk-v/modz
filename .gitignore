@@ -1,6 +1,4 @@
 .idea/
 target/
 
-modz.bin
-modz.jar
-modz.log
+modz/

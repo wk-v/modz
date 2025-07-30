@@ -2,19 +2,18 @@ package ru.wkov.modz.control;
 
 import javafx.scene.Node;
 import javafx.scene.control.Accordion;
+import javafx.scene.control.Skin;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.skin.TitledPaneSkin;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
 import ru.wkov.modz.ModzBean;
+import ru.wkov.modz.ModzUtil;
 
-import static javafx.geometry.Pos.CENTER_LEFT;
 import static javafx.scene.input.MouseButton.PRIMARY;
 import static javafx.scene.input.MouseEvent.ANY;
 import static javafx.scene.input.MouseEvent.MOUSE_PRESSED;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignM.MENU_DOWN_OUTLINE;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignM.MENU_RIGHT_OUTLINE;
-import static ru.wkov.modz.ModzUtil.includes;
 import static ru.wkov.modz.ModzUtil.prop;
 
 /**
@@ -22,74 +21,74 @@ import static ru.wkov.modz.ModzUtil.prop;
  */
 public class ModzMore extends TitledPane implements ModzBean {
 
-    private final ModzIcon icon;
+    private final ModzIcon fold;
 
-    private TitledPaneSkin skin;
+    private final HBox head;
+
+    private final HBox body;
 
     public ModzMore() {
-        addStyleClasses("modz-more");
+        fold = new ModzIcon(MENU_DOWN_OUTLINE, MENU_RIGHT_OUTLINE);
 
-        icon = new ModzIcon(MENU_DOWN_OUTLINE, MENU_RIGHT_OUTLINE);
-        icon.getStyleClass().add("modz-more-icon");
+        head = new HBox(fold);
+        head.getStyleClass().add("modz-more-head");
+
+        body = new HBox();
+        body.getStyleClass().add("modz-more-body");
 
         addEventHandler(ANY, event -> {
-            var type = event.getEventType();
             var target = event.getTarget();
-
             if (target instanceof ModzIcon) {
-                var btn = event.getButton();
-                if (target == icon && type == MOUSE_PRESSED && btn == PRIMARY) {
-                    if (getParent() instanceof Accordion menu) {
-                        menu.getPanes().forEach(more -> more.setAnimated(true));
-                        setExpanded(!isExpanded());
-                        menu.getPanes().forEach(more -> more.setAnimated(false));
-                    } else {
-                        setAnimated(true);
-                        setExpanded(!isExpanded());
-                        setAnimated(false);
+                if (target == fold) {
+                    if (event.getEventType() == MOUSE_PRESSED && event.getButton() == PRIMARY) {
+                        var expanded = !isExpanded();
+
+                        if (getParent() instanceof Accordion menu) {
+                            menu.getPanes().forEach(more -> more.setAnimated(true));
+                            setExpanded(expanded);
+                            menu.getPanes().forEach(more -> more.setAnimated(false));
+                        } else {
+                            setAnimated(true);
+                            setExpanded(expanded);
+                            setAnimated(false);
+                        }
                     }
                 }
-            } else if (includes((Node) target, getTitlePane())) {
-                getParent().fireEvent(event);
+            } else if (target instanceof Node node) {
+                if (ModzUtil.includes(node, head.getParent())) {
+                    getParent().fireEvent(event);
+                }
             }
         });
 
-        expandedProperty()
-                .addListener(prop(false, icon::setState));
-
+        expandedProperty().addListener(prop(false, fold::setState));
+        addStyleClasses("modz-more");
         setAnimated(false);
-    }
-
-    public void setTitles(Node... nodes) {
-        var head = new HBox(icon);
-        head.setAlignment(CENTER_LEFT);
-        head.getChildren().addAll(nodes);
-        head.getStyleClass().add("modz-more-head");
-
+        setContent(body);
         setGraphic(head);
     }
 
+    public void setTitles(Node... nodes) {
+        head.getChildren().setAll(fold);
+        head.getChildren().addAll(nodes);
+    }
+
     public void setContents(Node... nodes) {
-        var body = new HBox(nodes);
-        body.getStyleClass().add("modz-more-body");
-
-        setContent(body);
-    }
-
-    public StackPane getTitlePane() {
-        return (StackPane) createDefaultSkin().getChildren().get(1);
-    }
-
-    public StackPane getContentPane() {
-        return (StackPane) createDefaultSkin().getChildren().get(0);
+        body.getChildren().setAll(nodes);
+        body.visibleProperty().addListener(prop(false, visible -> {
+            if (visible) {
+                body.getChildren().setAll(nodes);
+            } else {
+                body.getChildren().clear();
+            }
+        }));
     }
 
     @Override
-    protected TitledPaneSkin createDefaultSkin() {
-        if (skin == null) {
-            skin = new TitledPaneSkin(this);
-            getTitlePane().setOnMouseReleased(null);
-        }
+    protected Skin<?> createDefaultSkin() {
+        var skin = (TitledPaneSkin) super.createDefaultSkin();
+        skin.getChildren().get(1).setOnMouseReleased(null);
+
         return skin;
     }
 }

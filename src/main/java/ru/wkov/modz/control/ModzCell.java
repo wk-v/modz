@@ -1,405 +1,364 @@
 package ru.wkov.modz.control;
 
-import javafx.beans.value.ChangeListener;
-import javafx.collections.MapChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 import javafx.collections.transformation.SortedList;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import org.kordamp.ikonli.javafx.FontIcon;
+import javafx.scene.layout.StackPane;
+import org.apache.commons.lang3.ArrayUtils;
 import ru.wkov.modz.ModzBean;
+import ru.wkov.modz.data.MapzItem;
 import ru.wkov.modz.data.ModzItem;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
-import static java.net.URLEncoder.encode;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Comparator.comparingInt;
+import static java.util.Comparator.comparing;
 import static javafx.collections.FXCollections.observableArrayList;
-import static javafx.geometry.Pos.CENTER_LEFT;
-import static javafx.scene.input.KeyCode.ESCAPE;
+import static javafx.collections.FXCollections.sort;
+import static javafx.geometry.Pos.TOP_RIGHT;
+import static javafx.scene.Cursor.CLOSED_HAND;
+import static javafx.scene.Cursor.OPEN_HAND;
+import static javafx.scene.control.OverrunStyle.CLIP;
 import static javafx.scene.input.MouseButton.PRIMARY;
 import static javafx.scene.input.MouseEvent.MOUSE_PRESSED;
 import static javafx.scene.layout.HBox.setHgrow;
 import static javafx.scene.layout.Priority.ALWAYS;
-import static javafx.scene.paint.Color.BLACK;
-import static org.apache.commons.lang3.ArrayUtils.toArray;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.*;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FOLDER_OPEN_OUTLINE;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OFF_OUTLINE;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OUTLINE;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignS.STEAM;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignW.WEB;
+import static org.apache.commons.lang3.StringUtils.leftPad;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.CHECKBOX_BLANK_OUTLINE;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.CHECKBOX_INTERMEDIATE;
 import static ru.wkov.modz.ModzUtil.*;
-import static ru.wkov.modz.data.ModzType.MAPZ;
-import static ru.wkov.modz.data.ModzType.NULL;
+import static ru.wkov.modz.event.ModzColor.COLOR;
+import static ru.wkov.modz.event.ModzRandom.RANDOM;
 
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)
  */
 public class ModzCell extends ListCell<ModzItem> implements ModzBean {
 
-    private final ChangeListener<Object> listener;
+    private final ObservableList<ModzType> tags;
 
-    private final ModzListNested reqs;
+    private final StackPane line;
 
-    private final ModzListNested used;
-
-    private final ModzMenu menu;
-
-    private final ModzMore more;
+    private final ModzIcon flag;
 
     private final ModzPage page;
 
+    private final ModzRate rate;
+
+    private final ModzMore more;
+
+    private final ModzMenu menu;
+
     private final TextArea desc;
 
-    private final ModzIcon icon;
+    private final MapzView maps;
+
+    private final LinkView reqs;
+
+    private final LinkView used;
 
     private final Label numb;
 
-    private final Label name;
-
-    private ModzItem item;
+    private final Label text;
 
     public ModzCell() {
         addStyleClasses("modz-cell");
-
         setGraphic(null);
 
-        listener = prop(this::updateStyle);
+        numb = new Label();
+        text = new Label();
 
-        icon = new ModzIcon();
-        icon.setEffect(ICON_EFFECT);
-        icon.addEventFilter(MOUSE_PRESSED, event -> {
-            if (item != null && event.getButton() == PRIMARY) {
-                var model = getListView().getSelectionModel();
-                var checked = !item.isChecked();
-                if (item.isSelected()) {
-                    new ArrayList<>(model.getSelectedItems())
-                            .forEach(i -> i.setChecked(checked));
-                } else {
-                    item.setChecked(checked);
+        flag = new ModzIcon(CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OUTLINE);
+        flag.addEventFilter(MOUSE_PRESSED, event -> {
+            if (event.getButton() == PRIMARY) {
+                var item = getItem();
+                if (item != null) {
+                    var included = !item.isIncluded();
+
+                    var model = getListView().getSelectionModel();
+                    if (item.isSelected()) {
+                        new ArrayList<>(model.getSelectedItems())
+                                .forEach(i -> i.setIncluded(included));
+                    } else {
+                        item.setIncluded(included);
+                    }
                 }
             }
             event.consume();
         });
 
-        numb = new Label();
-        name = new Label();
-
-        var btns = new HBox(
-                new Button() {{
-                    setGraphic(new FontIcon(FOLDER_OPEN_OUTLINE));
-                    setOnAction(event -> explore(getItem().getModPath()));
-                }},
-                new Button() {{
-                    setGraphic(new FontIcon(STEAM));
-                    setOnAction(event -> explore(STEAM_OPENURL + STEAM_WORKSHOP_URI + getItem().getWorkshopId()));
-                }},
-                new Button() {{
-                    setGraphic(new FontIcon(WEB));
-                    setOnAction(event -> explore(STEAM_WORKSHOP_URI + getItem().getWorkshopId()));
-                }}
-        );
-        btns.getStyleClass().add("modz-exec-btns");
-
-        desc = new TextArea();
-        desc.getStyleClass().add("modz-cell-desc");
-        desc.setEditable(false);
-        desc.setWrapText(true);
-
-        var vbox = new VBox(desc, btns);
-        VBox.setVgrow(desc, ALWAYS);
-
-        reqs = new ModzListNested();
-        used = new ModzListNested();
+        page = new ModzPage(300.0, 300.0);
+        rate = new ModzRate();
 
         menu = new ModzMenu();
-        menu.setMaxHeight(250.0);
-        menu.setDesc(vbox);
-        menu.setReqs(reqs);
-        menu.setUsed(used);
-
-        page = new ModzPage(250.0, 250.0);
-
-        more = new ModzMore();
-        more.setTitles(icon, numb, name);
-        more.setContents();
-
-        var content = (HBox) more.getContent();
-        var nodes = content.getChildren();
-        var array = toArray(page, menu);
-
-        content.visibleProperty().addListener(prop(false, visible -> {
-            if (visible) {
-                nodes.setAll(array);
-            } else {
-                nodes.clear();
+        menu.detailedProperty().addListener(prop(false, detailed -> {
+            var item = getItem();
+            if (item != null) {
+                item.setDetailed(detailed.intValue());
             }
         }));
 
         setHgrow(menu, ALWAYS);
-        setHgrow(vbox, ALWAYS);
-        setHgrow(reqs, ALWAYS);
-        setHgrow(used, ALWAYS);
+
+        more = new ModzMore();
+        more.setTitles(flag, numb, rate, text);
+        more.setContents(page, menu);
+        more.getContent().visibleProperty()
+                .addListener(prop(false, page::setExpanded));
+        more.expandedProperty()
+                .addListener(prop(false, expanded -> {
+                    var item = getItem();
+                    if (item != null) {
+                        item.setExpanded(expanded);
+                    }
+                }));
+
+        desc = new TextArea();
+        desc.getStyleClass().add("modz-menu-desc");
+        desc.setEditable(false);
+        desc.setWrapText(true);
+
+        menu.setDesc(desc);
+
+        maps = new MapzView();
+        menu.setMaps(maps);
+
+        reqs = new LinkView();
+        menu.setReqs(reqs);
+
+        used = new LinkView();
+        menu.setUsed(used);
+
+        numb.setMinWidth(51);
+        text.setTextOverrun(CLIP);
+
+        more.setMinWidth(450);
+        widthProperty().addListener(prop(false, width ->
+                more.setMaxWidth(Double.max(width.doubleValue(), more.getMinWidth()))));
+
+        var hbox = new HBox();
+        hbox.getStyleClass().add("modz-cell-tags");
+        hbox.getChildren().addAll(ModzType.createAll(21));
+        hbox.setMouseTransparent(true);
+        hbox.setAlignment(TOP_RIGHT);
+
+        // noinspection all
+        tags = (ObservableList) hbox.getChildren();
+
+        line = new StackPane(more, hbox);
+        line.getStyleClass().add("modz-cell-line");
+    }
+
+    public void setChecked(boolean checked) {
+        pseudoClassStateChanged(CHECKED, checked);
+        flag.setState(checked);
+    }
+
+    public void setInvalid(boolean invalid) {
+        pseudoClassStateChanged(INVALID, invalid);
+    }
+
+    public void setNumber(int number) {
+        numb.setText(leftPad((number + 1) + ":", 6));
+    }
+
+    public void setImgs(List<? extends String> urls) {
+        page.setUrls(urls);
+    }
+
+    public void setTags(Set<? extends String> keys) {
+        tags.forEach(tag ->
+                tag.setVisible(keys.contains(tag.getId())));
+
+        sort(tags, comparing(ModzType::isVisible).thenComparing(ModzType::getOrder));
     }
 
     @Override
-    protected void updateItem(ModzItem next, boolean empty) {
-        super.updateItem(next, empty);
+    protected void updateItem(ModzItem item, boolean empty) {
+        super.updateItem(item, empty);
 
-        if (item != null) {
-            item.colorProperty().removeListener(listener);
-            item.checkedProperty().removeListener(listener);
-            item.invalidProperty().removeListener(listener);
-            item.priorityProperty().removeListener(listener);
-            item.selectedProperty().removeListener(listener);
-
-            item.detailedProperty().unbind();
-            item.expandedProperty().unbind();
-        }
-
-        if (empty) {
-            pseudoClassStateChanged(CHECKED, false);
-            pseudoClassStateChanged(INVALID, false);
-
+        if (item == null) {
+            setChecked(false);
+            setInvalid(false);
             setGraphic(null);
-            item = null;
-
             return;
-        } else {
-            setGraphic(more);
-            item = next;
         }
 
-        name.setText(item.getTitle());
-        desc.setText(item.toString());
-        page.setImages(item.getImages());
+        setChecked(item.isIncluded());
+        setInvalid(item.isDisabled());
+        setNumber(item.getPriority());
+        setImgs(item.imgs());
+        setTags(item.tags());
+
+        rate.setScore(item.getScore());
+        text.setText(item.toString());
+
+        var data = item.dataProperty().get();
+        if (data == null) {
+            rate.pseudoClassStateChanged(UNUSED, true);
+            desc.setText(String.format("""
+                            Workshop ID: %s
+                            Mod ID: %s
+                            
+                            %s
+                            """,
+                    item.workshop(),
+                    item.id(),
+                    item.description()
+            ));
+        } else {
+            rate.pseudoClassStateChanged(UNUSED, false);
+            desc.setText(String.format("""
+                            Workshop ID: %s
+                            Mod ID: %s
+                            
+                            Created: %s
+                            Updated: %s
+                            
+                            🔔 %,d 💛 %,d 👍 %,d 👎 %,d
+                            
+                            %s
+                            """,
+                    item.workshop(),
+                    item.id(),
+                    leftPad(data.getCreatedAt().format(DTF), 21),
+                    leftPad(data.getUpdatedAt().format(DTF), 21),
+                    data.getSubscriptions(),
+                    data.getFavorites(),
+                    data.getRate().getUp(),
+                    data.getRate().getDown(),
+                    data.getDescription()
+            ));
+        }
+
+        maps.accept(item.maps());
+        reqs.accept(item.reqs());
+        used.accept(item.used());
+
         menu.setDetailed(item.getDetailed());
         more.setExpanded(item.isExpanded());
 
-        reqs.setLinks(item.getReqs());
-        used.setLinks(item.getUsed());
+        sort(menu.getPanes(), comparing(TitledPane::isVisible).reversed());
 
-        item.colorProperty().addListener(listener);
-        item.checkedProperty().addListener(listener);
-        item.invalidProperty().addListener(listener);
-        item.priorityProperty().addListener(listener);
-        item.selectedProperty().addListener(listener);
-
-        item.detailedProperty().bind(menu.detailedProperty());
-        item.expandedProperty().bind(more.expandedProperty());
-
-        updateStyle();
+        setGraphic(line);
     }
 
-    private void updateStyle() {
-        if (item == null) {
-            return;
-        }
+    private static class MapzView extends ListView<MapzItem>
+            implements ModzBean, Consumer<ObservableList<MapzItem>> {
 
-        var checked = item.isChecked();
-        var invalid = item.isInvalid();
-        var selected = item.isSelected();
+        MapzView() {
+            addStyleClasses("modz-menu-list");
+            setCellFactory(unused -> new ModzMapz());
+            setPrefHeight(0);
+            setCursor(OPEN_HAND);
 
-        pseudoClassStateChanged(CHECKED, checked);
-        pseudoClassStateChanged(INVALID, invalid);
+            var dragged = new AtomicInteger(-1);
 
-        var type = item.getType();
-        switch (type) {
-            case CARZ -> icon.setCodes(CAR, CAR_OFF);
-            case MAPZ -> icon.setCodes(CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OFF_OUTLINE);
-            case MODZ -> icon.setCodes(COG_OUTLINE, COG_OFF_OUTLINE);
-            case TXTR -> icon.setCodes(IMAGE_OUTLINE, IMAGE_OFF_OUTLINE);
-        }
+            setOnDragDetected(event -> {
+                if (event.isPrimaryButtonDown()) {
+                    dragged.set(getSelectionModel().getSelectedIndex());
+                }
+            });
 
-        var color = selected ? getMainColor() : BLACK;
-        if (checked) {
-            if (invalid) {
-                color = selected ? getFailColor() : BLACK;
-            } else if (type == MAPZ) {
-                color = item.getColor();
-            }
-        }
+            setOnMouseDragged(event -> {
+                var prev = dragged.get();
+                if (prev != -1) {
+                    var cell = find(event.getPickResult(), ModzMapz.class);
+                    if (cell != null) {
+                        var items = getItems();
+                        var next = cell.getIndex();
+                        if (next != prev && next > -1 && next < items.size()) {
+                            items.get(next).setPriority(prev);
+                            items.get(prev).setPriority(next);
+                            items.sort(Comparator.comparingInt(MapzItem::getPriority));
+                            getSelectionModel().clearAndSelect(next);
+                            dragged.set(next);
+                        }
+                    }
+                }
+            });
 
-        icon.setIconColor(color);
-        icon.setState(checked);
+            setOnMousePressed(event -> {
+                setCursor(CLOSED_HAND);
+            });
 
-        numb.setText(item.getNum() + ':');
-    }
+            setOnMouseReleased(event -> {
+                setCursor(OPEN_HAND);
+                dragged.set(-1);
+            });
 
-    private static class ModzListNested extends ListView<ModzItem> implements ModzBean {
-
-        final MapChangeListener<String, ModzItem> listener;
-
-        final ObservableList<ModzItem> items;
-
-        ObservableMap<String, ModzItem> links;
-
-        ModzListNested() {
-            items = observableArrayList(item -> toArray(item.priorityProperty()));
-            setItems(new SortedList<>(items, comparingInt(ModzItem::getPriority)));
-            setCellFactory(ModzCellNested::new);
-            setOnKeyPressed(event -> {
-                if (event.getCode() == ESCAPE) {
+            getMainStage().addEventFilter(MOUSE_PRESSED, event -> {
+                var view = find(event.getPickResult(), MapzView.class);
+                if (view != null && view != this) {
                     getSelectionModel().clearSelection();
                 }
             });
 
-            listener = change -> items.setAll(links.values());
-        }
+            getMainStage().addEventFilter(COLOR, event -> {
+                var item = getSelectionModel().getSelectedItem();
+                if (item != null && !item.isEmpty()) {
+                    item.setColor(event.getColor());
+                }
+            });
 
-        void setLinks(ObservableMap<String, ModzItem> links) {
-            if (this.links != null) {
-                this.links.removeListener(listener);
-            }
-            this.links = links;
-
-            links.addListener(listener);
-            items.setAll(links.values());
-        }
-
-        static class ModzCellNested extends ListCell<ModzItem> implements ModzBean {
-
-            final ChangeListener<Object> listener;
-
-            final ModzIcon icon;
-
-            final Label numb;
-
-            final Label name;
-
-            final HBox head;
-
-            ModzItem item;
-
-            ModzCellNested(ListView<ModzItem> view) {
-                addStyleClasses("modz-cell-nested");
-
-                listener = prop(this::updateStyle);
-                selectedProperty()
-                        .addListener(listener);
-
-                var menu = new ContextMenu(
-                        new MenuItem("open in browser", new FontIcon(WEB)) {{
-                            setOnAction(event -> {
-                                if (item.getType() == NULL) {
-                                    explore(STEAM_SEARCH_URI + encode(item.getModId(), UTF_8));
-                                } else {
-                                    explore(STEAM_WORKSHOP_URI + getItem().getWorkshopId());
-                                }
-                            });
-                        }},
-                        new MenuItem("open in steam", new FontIcon(STEAM)) {{
-                            setOnAction(event -> {
-                                if (item.getType() == NULL) {
-                                    explore(STEAM_OPENURL + STEAM_SEARCH_URI + encode(item.getModId(), UTF_8));
-                                } else {
-                                    explore(STEAM_OPENURL + STEAM_WORKSHOP_URI + getItem().getWorkshopId());
-                                }
-                            });
-                        }},
-                        new MenuItem("open folder", new FontIcon(FOLDER_OPEN_OUTLINE)) {{
-                            setOnAction(event -> {
-                                if (item.getType() != NULL) {
-                                    explore(getItem().getModPath());
-                                }
-                            });
-                        }}
-                );
-                menu.setOnShowing(event -> menu.getItems().get(2).setDisable(item.getType() == NULL));
-                menu.getStyleClass().add("modz-cell-nested-context-menu");
-
-                setContextMenu(menu);
-
-                icon = new ModzIcon();
-                icon.setEffect(ICON_EFFECT);
-                icon.addEventFilter(MOUSE_PRESSED, event -> {
-                    if (item != null && item.getType() != NULL && event.getButton() == PRIMARY) {
-                        item.setChecked(!item.isChecked());
+            getMainStage().addEventFilter(RANDOM, event -> {
+                getItems().forEach(item -> {
+                    if (!item.isEmpty()) {
+                        item.setColor(color(0.28, 0.88));
                     }
-                    event.consume();
                 });
+            });
+        }
 
-                numb = new Label();
-                name = new Label();
+        @Override
+        public void accept(ObservableList<MapzItem> maps) {
+            if (maps.isEmpty()) {
+                setDisable(true);
+            } else {
+                setDisable(false);
+                setItems(maps);
+            }
+        }
+    }
 
-                head = new HBox(icon, numb, name);
-                head.setAlignment(CENTER_LEFT);
-                head.getStyleClass().add("modz-cell-head");
+    private static class LinkView extends ListView<ModzItem>
+            implements ModzBean, Consumer<ObservableMap<String, ModzItem>> {
+
+        final ObservableList<ModzItem> items;
+
+        Runnable unbind;
+
+        LinkView() {
+            items = observableArrayList(item -> ArrayUtils.toArray(item.priorityProperty()));
+            setItems(new SortedList<>(items, Comparator.comparingInt(ModzItem::getPriority)));
+
+            addStyleClasses("modz-menu-list");
+            setCellFactory(unused -> new ModzLink());
+            setPrefHeight(0);
+        }
+
+        @Override
+        public void accept(ObservableMap<String, ModzItem> links) {
+            if (unbind != null) {
+                unbind.run();
             }
 
-            @Override
-            protected void updateItem(ModzItem next, boolean empty) {
-                super.updateItem(next, empty);
+            if (links.isEmpty()) {
+                setDisable(true);
+            } else {
+                setDisable(false);
 
-                if (item != null) {
-                    item.colorProperty().removeListener(listener);
-                    item.checkedProperty().removeListener(listener);
-                    item.invalidProperty().removeListener(listener);
-                    item.priorityProperty().removeListener(listener);
-                }
+                var listener = map(() -> items.setAll(links.values()));
+                listener.onChanged(null);
 
-                if (empty) {
-                    pseudoClassStateChanged(CHECKED, false);
-                    pseudoClassStateChanged(INVALID, false);
-
-                    setGraphic(null);
-                    item = null;
-
-                    return;
-                } else {
-                    setGraphic(head);
-                    item = next;
-                }
-
-                name.setText(item.getTitle());
-
-                item.colorProperty().addListener(listener);
-                item.checkedProperty().addListener(listener);
-                item.invalidProperty().addListener(listener);
-                item.priorityProperty().addListener(listener);
-
-                updateStyle();
-            }
-
-            void updateStyle() {
-                if (item == null) {
-                    return;
-                }
-
-                var checked = item.isChecked();
-                var invalid = item.isInvalid();
-                var selected = isSelected();
-                var priority = item.getPriority();
-
-                pseudoClassStateChanged(CHECKED, checked);
-                pseudoClassStateChanged(INVALID, invalid);
-
-                var type = item.getType();
-                switch (type) {
-                    case CARZ -> icon.setCodes(CAR, CAR_OFF);
-                    case MAPZ -> icon.setCodes(CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OFF_OUTLINE);
-                    case MODZ -> icon.setCodes(COG_OUTLINE, COG_OFF_OUTLINE);
-                    case NULL -> icon.setCodes(CLOSE_OUTLINE, CLOSE_OUTLINE);
-                    case TXTR -> icon.setCodes(IMAGE_OUTLINE, IMAGE_OFF_OUTLINE);
-                }
-
-                var color = selected ? getMainColor() : BLACK;
-                if (checked) {
-                    if (invalid) {
-                        color = selected ? getFailColor() : BLACK;
-                    } else if (type == MAPZ) {
-                        color = item.getColor();
-                    }
-                }
-
-                icon.setIconColor(color);
-                icon.setState(checked);
-
-                numb.setText(priority < 0 ? "" : item.getNum() + ':');
+                links.addListener(listener);
+                unbind = () -> links.removeListener(listener);
             }
         }
     }

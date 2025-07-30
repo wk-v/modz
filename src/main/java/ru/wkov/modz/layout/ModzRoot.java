@@ -25,6 +25,7 @@ import static javafx.scene.input.MouseEvent.*;
 import static javafx.scene.layout.Priority.ALWAYS;
 import static org.apache.commons.lang3.StringUtils.replaceChars;
 import static ru.wkov.modz.ModzUtil.*;
+import static ru.wkov.modz.ModzUtil.PRESSED;
 
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)

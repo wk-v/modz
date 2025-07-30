@@ -19,6 +19,8 @@ public class ModzMenu extends Accordion implements ModzBean {
 
     private final ModzMore desc;
 
+    private final ModzMore maps;
+
     private final ModzMore reqs;
 
     private final ModzMore used;
@@ -33,13 +35,16 @@ public class ModzMenu extends Accordion implements ModzBean {
         desc = new ModzMore();
         desc.setTitles(new Label("Details:"));
 
+        maps = new ModzMore();
+        maps.setTitles(new Label("Mapping:"));
+
         reqs = new ModzMore();
         reqs.setTitles(new Label("Require:"));
 
         used = new ModzMore();
         used.setTitles(new Label("Used By:"));
 
-        getPanes().addAll(desc, reqs, used);
+        getPanes().addAll(desc, maps, reqs, used);
         setExpandedPane(desc);
     }
 
@@ -51,15 +56,25 @@ public class ModzMenu extends Accordion implements ModzBean {
         setExpandedPane(detailed == -1 ? null : getPanes().get(detailed));
     }
 
-    public void setDesc(Node... desc) {
-        this.desc.setContents(desc);
+    public void setDesc(Node desc) {
+        this.desc.setContent(desc);
     }
 
-    public void setReqs(Node... reqs) {
-        this.reqs.setContents(reqs);
+    public void setMaps(Node maps) {
+        this.maps.setContent(maps);
+        this.maps.visibleProperty()
+                .bind(maps.disableProperty().map(disable -> !disable));
     }
 
-    public void setUsed(Node... used) {
-        this.used.setContents(used);
+    public void setReqs(Node reqs) {
+        this.reqs.setContent(reqs);
+        this.reqs.visibleProperty()
+                .bind(reqs.disableProperty().map(disable -> !disable));
+    }
+
+    public void setUsed(Node used) {
+        this.used.setContent(used);
+        this.used.visibleProperty()
+                .bind(used.disableProperty().map(disable -> !disable));
     }
 }

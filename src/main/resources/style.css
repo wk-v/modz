@@ -41,6 +41,13 @@
     -fx-background-color: -fx-none;
 }
 
+.list-view .scroll-bar:horizontal .increment-arrow,
+.list-view .scroll-bar:horizontal .decrement-arrow,
+.list-view .scroll-bar:horizontal .increment-button,
+.list-view .scroll-bar:horizontal .decrement-button {
+    -fx-padding: 0;
+}
+
 .alert,
 .tooltip,
 .context-menu,
@@ -61,6 +68,30 @@
     -fx-background-color: -fx-none;
     -fx-padding: 0;
     -fx-shape: null;
+}
+
+.context-menu > * > .menu-item > * > .ikonli-font-icon {
+    -fx-icon-color: -fx-main;
+    -fx-icon-size: 16;
+}
+
+.context-menu > * > .menu-item:focused > * > .ikonli-font-icon {
+    -fx-icon-color: -fx-base;
+}
+
+.context-menu > * > .menu-item .label {
+    -fx-text-fill: -fx-main;
+}
+
+.context-menu > * > .menu-item:focused .label {
+    -fx-text-fill: -fx-base;
+}
+
+.context-menu > * > .menu > .right-container > .arrow {
+    -fx-background-color: -fx-main;
+}
+.context-menu > * > .menu:focused > .right-container > .arrow {
+    -fx-background-color: -fx-base;
 }
 
 /*******************************************************************************
@@ -98,6 +129,16 @@
 
 .modz-root-border:pressed:bottom-center {
     -fx-border-color: -fx-none -fx-none -fx-main -fx-none;
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-help                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-help {
+    -fx-background-color: -fx-base;
 }
 
 /*******************************************************************************
@@ -200,20 +241,35 @@
    -fx-border-color: -fx-none -fx-none -fx-none -fx-main;
 }
 
+/*******************************************************************************
+ *                                                                             *
+ * modz-list                                                                   *
+ *                                                                             *
+ ******************************************************************************/
+
 .modz-list > * {
     -fx-background-color: -fx-accent;
 }
 
-.modz-vbox-btns {
-    -fx-background-insets: 0 -0.166667em 0 0;
+/*******************************************************************************
+ *                                                                             *
+ * modz-list-btns                                                              *
+ *                                                                             *
+ ******************************************************************************/
+
+.modz-list-pane {
     -fx-background-color: #000000D0;
+    -fx-background-insets: 0 -0.083333em 0 0;
+}
+
+.modz-list-btns {
     -fx-padding: 0.25em;
     -fx-spacing: 0.25em;
 }
 
-.modz-vbox-btns > .button,
-.modz-vbox-btns > .menu-button,
-.modz-vbox-btns > .color-picker {
+.modz-list-btns > .button,
+.modz-list-btns > .menu-button,
+.modz-list-btns > .color-picker {
     -fx-content-display: graphic-only;
     -fx-max-height: 32;
     -fx-min-height: 32;
@@ -221,53 +277,64 @@
     -fx-min-width: 32;
 }
 
-.modz-vbox-btns > .color-picker > .color-picker-label,
-.modz-vbox-btns > .menu-button > .label {
+.modz-list-btns > .color-picker > .color-picker-label,
+.modz-list-btns > .menu-button > .label {
     -fx-padding: 0.416667em;
 }
 
-.modz-vbox-btns > .button > .ikonli-font-icon,
-.modz-vbox-btns > .menu-button > .label > .ikonli-font-icon,
-.modz-vbox-btns > .color-picker > .color-picker-label > .ikonli-font-icon {
+.modz-list-btns > .button > .ikonli-font-icon,
+.modz-list-btns > .menu-button > .label > .ikonli-font-icon,
+.modz-list-btns > .color-picker > .color-picker-label > .ikonli-font-icon {
     -fx-icon-size: 21;
 }
 
-.modz-vbox-btns > .button > .ikonli-font-icon,
-.modz-vbox-btns > .menu-button > .label > .ikonli-font-icon {
+.modz-list-btns > .button > .ikonli-font-icon,
+.modz-list-btns > .menu-button > .label > .ikonli-font-icon {
     -fx-icon-color: -fx-accent;
 }
 
-.modz-vbox-btns > .menu-button > * > .context-menu {
+.modz-list-btns > .menu-button > * > .context-menu {
     -fx-background-color: #020C0E;
     -fx-background-radius: 0 0 2 1;
     -fx-min-width: 32;
 }
 
-.modz-vbox-btns > .menu-button > * > .context-menu > * > .menu-item > .ikonli-font-icon {
+.modz-list-btns > .menu-button > * > .context-menu > * > .menu-item > .modz-icon {
     -fx-icon-color: -fx-accent;
     -fx-icon-size: 18;
 }
 
-.modz-vbox-btns > .menu-button > * > .context-menu > * > .menu-item:focused > .ikonli-font-icon {
+.modz-list-btns > .menu-button > * > .context-menu > * > .menu-item:focused > .modz-icon {
     -fx-icon-color: -fx-base;
 }
+
+.modz-list-btns > .modz-search > * > .context-menu {
+    -fx-background-color: -fx-none !important;
+    -fx-padding: 0;
+}
+
+.modz-list-btns > .modz-search > * > .context-menu > * > .menu-item {
+    -fx-background-color: -fx-none;
+    -fx-padding: 0.166667em 0.666667em 0.166667em 0;
+}
+
+.modz-type-hint {
+    -fx-text-fill: -fx-main;
+    -fx-font: 14 'Liberation Mono Bold';
+}
+
+/*******************************************************************************
+ *                                                                             *
+ * modz-list-view                                                              *
+ *                                                                             *
+ ******************************************************************************/
 
 .modz-list-view {
     -fx-background-position: center;
     -fx-background-repeat: no-repeat;
     -fx-background-image: url("black.png");
     -fx-background-size: contain;
-    -fx-padding: 0;
-}
-
-.modz-search > * > .context-menu {
-    -fx-background-color: -fx-none !important;
-    -fx-padding: 0;
-}
-
-.modz-search > * > .context-menu > * > .menu-item {
-    -fx-background-color: -fx-none;
-    -fx-padding: 0.166667em 0.666667em 0.166667em 0;
+    -fx-padding: 0 0 0 0.166667em;
 }
 
 /*******************************************************************************
@@ -276,101 +343,110 @@
  *                                                                             *
  ******************************************************************************/
 
-.modz-cell,
-.modz-cell-nested {
-    -fx-min-height: 25;
+.modz-cell {
+    -fx-background-color: derive(#146478D8, -10%);
+    -fx-border-width: 0;
     -fx-padding: 0;
 }
 
-.modz-cell > .modz-more > .title {
-    -fx-background-radius: 0;
-    -fx-padding: 0.166667em 0 0.166667em 0;
-}
-
-.modz-cell-over > .modz-cell-head > .label {
-    -fx-font: 13 'Liberation Mono Bold Italic';
-}
-
-.modz-cell-nested > .modz-cell-head {
-    -fx-padding: 0 0.75em 0 0.75em;
-}
-
-.modz-cell-nested-context-menu > * > .menu-item > * > .ikonli-font-icon {
-    -fx-icon-color: -fx-main;
-    -fx-icon-size: 18;
-}
-
-.modz-cell-nested {
-    -fx-background-color: -fx-none;
-}
-
-.modz-cell:selected > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .content > .modz-more-body > .list-view {
-    -fx-background-color: #146478B0;
-}
-
-.modz-cell-dragged,
-.modz-cell {
-    -fx-background-color: derive(#146478B0, -5%);
-}
-
-.modz-cell-dragged:odd,
 .modz-cell:odd {
-    -fx-background-color: derive(#146478B0, -10%);
+    -fx-background-color: derive(#146478D8, -15%);
 }
 
-.modz-cell-nested:selected > .modz-cell-head,
-.modz-cell:selected > .modz-more > .title,
-.modz-cell:selected > .modz-more > .content {
+.modz-cell:selected {
+    -fx-background-color: derive(#000000D8, 15%);
+}
+
+.modz-cell:selected:odd {
+    -fx-background-color: derive(#000000D8, 10%);
+}
+
+.modz-cell:checked:invalid > .modz-cell-line > .modz-more > .title,
+.modz-cell:checked:invalid > .modz-cell-line > .modz-more > .content {
+    -fx-background-color: #D81200B0;
+}
+
+.modz-cell:checked:invalid:selected > .modz-cell-line > .modz-more > .title,
+.modz-cell:checked:invalid:selected > .modz-cell-line > .modz-more > .content {
     -fx-background-color: #000000B0;
 }
 
-.modz-cell-nested:checked:invalid,
-.modz-cell:checked:invalid > .modz-more > .title {
-    -fx-background-color: #E80000B0;
+.modz-cell .modz-rate,
+.modz-cell .modz-page,
+.modz-cell .modz-mapz .modz-icon {
+    -fx-opacity: 0.28;
 }
 
-.modz-cell:checked:invalid:selected > .modz-more > .title {
-    -fx-background-color: #000000B0;
+.modz-cell:checked .modz-rate,
+.modz-cell:checked .modz-page,
+.modz-cell:checked .modz-mapz .modz-icon {
+    -fx-opacity: 1.0;
 }
 
-.modz-cell-nested > .modz-cell-head > .label,
-.modz-cell > .modz-more > .title > .modz-more-head > .label,
-.modz-cell > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .title > .modz-more-head > .label,
-.modz-cell > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .content > .modz-more-body > * > .modz-cell-desc {
+.modz-cell .modz-more > .title > .modz-more-head > *,
+.modz-cell .modz-more > .content .modz-menu-desc,
+.modz-cell .modz-more > .content .modz-cell-head > * {
+    -fx-icon-color: #00000038;
+    -fx-text-fill: #00000038;
+}
+
+.modz-cell .modz-more > .content {
+    -fx-border-color: #00000038;
+}
+
+.modz-cell:selected .modz-more > .title > .modz-more-head > *,
+.modz-cell:selected .modz-more > .content .modz-menu-desc,
+.modz-cell:selected .modz-more > .content .modz-cell-head > * {
+    -fx-icon-color: #14647838;
+    -fx-text-fill: #14647838;
+}
+
+.modz-cell:selected .modz-more > .content {
+    -fx-border-color: #14647838;
+}
+
+.modz-cell:checked .modz-more > .title > .modz-more-head > *,
+.modz-cell:checked .modz-more > .content .modz-menu-desc,
+.modz-cell:checked .modz-more > .content .modz-cell-head > * {
+    -fx-icon-color: -fx-base;
     -fx-text-fill: -fx-base;
 }
 
-.modz-cell-nested:selected > .modz-cell-head > .label,
-.modz-cell:selected > .modz-more > .title > .modz-more-head > .label,
-.modz-cell:selected > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .title > .modz-more-head > .label,
-.modz-cell:selected > .modz-more > .content > .modz-more-body > .accordion > .modz-more > .content > .modz-more-body > * > .modz-cell-desc {
+.modz-cell:checked .modz-more > .content {
+    -fx-border-color: -fx-base;
+}
+
+.modz-cell:checked:selected .modz-more > .title > .modz-more-head > *,
+.modz-cell:checked:selected .modz-more > .content .modz-menu-desc,
+.modz-cell:checked:selected .modz-more > .content .modz-cell-head > * {
+    -fx-icon-color: -fx-main;
     -fx-text-fill: -fx-main;
 }
 
-.modz-cell-nested:checked:invalid > .modz-cell-head > .label,
-.modz-cell:checked:invalid > .modz-more > .title > .modz-more-head > .label {
+.modz-cell:checked:selected .modz-more > .content {
+    -fx-border-color: -fx-main;
+}
+
+.modz-cell:checked:invalid .modz-more > .title > .modz-more-head > *,
+.modz-cell:checked:invalid .modz-more > .content .modz-menu-desc,
+.modz-cell:checked:invalid .modz-more > .content .modz-cell-head > * {
+    -fx-icon-color: -fx-base;
     -fx-text-fill: -fx-base;
 }
 
-.modz-cell-nested:selected:checked:invalid > .modz-cell-head > .label,
-.modz-cell:selected:checked:invalid > .modz-more > .title > .modz-more-head > .label {
-    -fx-text-fill: #E82828;
+.modz-cell:checked:invalid .modz-more > .content {
+    -fx-border-color: -fx-base;
 }
 
-.modz-cell > .modz-more > .title > .modz-more-head > .modz-more-icon {
-    -fx-icon-color: -fx-base;
+.modz-cell:checked:invalid:selected .modz-more > .title > .modz-more-head > *,
+.modz-cell:checked:invalid:selected .modz-more > .content .modz-menu-desc,
+.modz-cell:checked:invalid:selected .modz-more > .content .modz-cell-head > * {
+    -fx-icon-color: #D82828;
+    -fx-text-fill: #D82828;
 }
 
-.modz-cell:selected > .modz-more > .title > .modz-more-head > .modz-more-icon {
-    -fx-icon-color: -fx-main;
-}
-
-.modz-cell:checked:invalid > .modz-more > .title > .modz-more-head > .modz-more-icon {
-    -fx-icon-color: -fx-base;
-}
-
-.modz-cell:selected:checked:invalid > .modz-more > .title > .modz-more-head > .modz-more-icon {
-    -fx-icon-color: #E82828;
+.modz-cell:checked:invalid:selected .modz-more > .content {
+    -fx-border-color: #D82828;
 }
 
 /*******************************************************************************
@@ -383,49 +459,54 @@
     -fx-content-display: graphic-only;
     -fx-background-color: -fx-none;
     -fx-border-width: 0;
+    -fx-padding: 0;
 }
 
-.modz-more,
-.modz-more > .title,
-.modz-more > .title > .arrow-button,
-.modz-more > .title > .arrow-button > .arrow {
+.modz-more > .title {
+    -fx-background-radius: 0;
     -fx-background-color: -fx-none;
     -fx-border-width: 0;
-    -fx-padding: 0;
-    -fx-shape: null;
+    -fx-padding: 2 0 2 0;
 }
 
 .modz-more > .content {
     -fx-background-color: -fx-none;
-    -fx-border-insets: 0.25em 0 0.25em 0.666667em;
+    -fx-border-insets: 0 0 0.416667em 0.833333em;
     -fx-border-width: 0 0 0 0.083333em;
 }
 
-.modz-cell-head,
-.modz-more-head {
-    -fx-spacing: 3;
+.modz-more-head,
+.modz-cell-head {
+    -fx-alignment: center-left;
+    -fx-spacing: 4;
+    -fx-padding: 0 1 0 1;
 }
 
-.modz-cell-head > .modz-icon,
-.modz-more-head > .modz-icon {
-    -fx-icon-size: 21;
-}
-
-.modz-cell-head > .label,
-.modz-more-head > .label {
+.modz-more-head > .label,
+.modz-cell-head > .label {
     -fx-font: 14 'Liberation Mono Bold';
 }
 
-.modz-more-body {
-    -fx-padding: 0 0 0 0.75em;
+.modz-more-head > .ikonli-font-icon,
+.modz-cell-head > .ikonli-font-icon {
+    -fx-icon-color: -fx-base;
+    -fx-icon-size: 23;
 }
 
-.modz-more-body > .accordion > .modz-more > .content > .modz-more-body > * > .modz-cell-desc {
-    -fx-background-insets: 0;
-    -fx-background-radius: 0;
-    -fx-background-color: -fx-none;
-    -fx-padding: 0;
-    -fx-font: 13 'Liberation Mono';
+.modz-cell-tags {
+    -fx-padding: 0.25em 0.333333em 0 0;
+}
+
+.modz-more-body {
+    -fx-spacing: 10;
+}
+
+.modz-cell-over {
+    -fx-alignment: center-right !important;
+}
+
+.modz-cell-over > .label {
+    -fx-font: 13 'Liberation Mono Bold Italic' !important;
 }
 
 /*******************************************************************************
@@ -435,7 +516,7 @@
  ******************************************************************************/
 
 .modz-page {
-    -fx-background-color: #0D404C80;
+    -fx-background-color: #FFFFFF0A;
 }
 
 .modz-page > .page {
@@ -466,35 +547,48 @@
 
 /*******************************************************************************
  *                                                                             *
- * modz-exec-btns                                                              *
+ * modz-rate                                                                   *
  *                                                                             *
  ******************************************************************************/
 
-.modz-exec-btns {
-    -fx-spacing: 0.25em;
+.modz-rate {
+    -fx-padding: 0 0.5em 0 0;
 }
 
-.modz-exec-btns > .button {
-    -fx-background-color: -fx-none, -fx-outer-border, -fx-inner-border, -fx-body-color;
-    -fx-content-display: graphic-only;
-    -fx-padding: 0.166667em;
-}
-
-.modz-exec-btns > .button:focused {
-    -fx-background-color: -fx-focus-color, -fx-inner-border, -fx-body-color, -fx-faint-focus-color, -fx-body-color;
-}
-
-.modz-exec-btns > .button > .ikonli-font-icon {
-    -fx-icon-color: -fx-main;
+.modz-rate .modz-icon {
+    -fx-icon-color: gold;
     -fx-icon-size: 19;
+}
+
+.modz-rate:unused .modz-icon {
+    -fx-icon-color: gray;
 }
 
 /*******************************************************************************
  *                                                                             *
- * modz-help                                                                   *
+ * modz-menu                                                                   *
  *                                                                             *
  ******************************************************************************/
 
-.modz-help {
-    -fx-background-color: -fx-base;
+.modz-menu-desc {
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-background-color: -fx-none;
+    -fx-padding: 0;
+    -fx-font: 14 'Liberation Mono';
+}
+
+.modz-menu-list {
+    -fx-background-color: -fx-none;
+    -fx-padding: 0.25em;
+}
+
+.modz-link,
+.modz-mapz {
+    -fx-background-color: -fx-none;
+}
+
+.modz-link:selected,
+.modz-mapz:selected {
+    -fx-background-color: #FFFFFF0A;
 }

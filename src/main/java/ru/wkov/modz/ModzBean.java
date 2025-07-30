@@ -8,11 +8,9 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.logging.Logger;
 
 import static javafx.stage.Modality.APPLICATION_MODAL;
 import static javafx.stage.StageStyle.UNDECORATED;
@@ -27,6 +25,10 @@ public interface ModzBean {
         return logger;
     }
 
+    default String getWebApiKey() {
+        return webApiKey;
+    }
+
     default Stage getMainStage() {
         return mainStage;
     }
@@ -37,10 +39,6 @@ public interface ModzBean {
 
     default Color getDarkColor() {
         return darkColor;
-    }
-
-    default Color getFailColor() {
-        return failColor;
     }
 
     default Image getAboutLogo() {
@@ -55,12 +53,12 @@ public interface ModzBean {
         return colorIcon;
     }
 
-    default String getText(String name, Charset charset) {
-        try (var stream = getResource(name).openStream()) {
-            return new String(stream.readAllBytes(), charset);
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
-        }
+    default Path getRootPath() {
+        return rootPath;
+    }
+
+    default int getTileSize() {
+        return 248;
     }
 
     default ImageView getColorIcon() {

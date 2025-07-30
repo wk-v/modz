@@ -1,24 +1,30 @@
 package ru.wkov.modz.layout;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.scene.control.*;
 import javafx.scene.control.skin.VirtualFlow;
-import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.robot.Robot;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.controlsfx.control.textfield.TextFields;
+import org.kordamp.ikonli.Ikon;
 import org.kordamp.ikonli.javafx.FontIcon;
 import ru.wkov.modz.ModzBean;
+import ru.wkov.modz.ModzUtil;
 import ru.wkov.modz.control.*;
 import ru.wkov.modz.data.ModzItem;
-import ru.wkov.modz.data.ModzTile;
-import ru.wkov.modz.data.ModzType;
+import ru.wkov.modz.event.ModzScroll;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -31,32 +37,28 @@ import static impl.org.controlsfx.autocompletion.SuggestionProvider.create;
 import static java.lang.Math.max;
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.Files.exists;
-import static java.util.Collections.swap;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static java.util.Comparator.comparing;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static javafx.collections.FXCollections.observableArrayList;
+import static java.util.logging.Level.WARNING;
 import static javafx.geometry.Orientation.HORIZONTAL;
 import static javafx.geometry.Side.LEFT;
 import static javafx.scene.Cursor.HAND;
 import static javafx.scene.control.SelectionMode.MULTIPLE;
-import static javafx.scene.input.Clipboard.getSystemClipboard;
 import static javafx.scene.input.KeyEvent.KEY_PRESSED;
+import static javafx.scene.input.MouseEvent.*;
 import static javafx.scene.layout.Priority.ALWAYS;
 import static javafx.stage.WindowEvent.WINDOW_HIDING;
-import static org.apache.commons.lang3.ArrayUtils.toArray;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.controlsfx.control.textfield.TextFields.bindAutoCompletion;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.*;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignD.DOWNLOAD;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FILTER_CHECK_OUTLINE;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OFF_OUTLINE;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignI.IMAGE_OUTLINE;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FOLDER_OPEN_OUTLINE;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignM.MAGNIFY;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignP.*;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignN.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignS.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignT.TRASH_CAN_OUTLINE;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignW.WEB;
 import static ru.wkov.modz.ModzUtil.*;
-import static ru.wkov.modz.data.ModzItem.toINI;
 
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)
@@ -71,7 +73,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
     private final FilteredList<ModzItem> filtered;
 
-    private final ListView<ModzItem> view;
+    private final ModzView view;
 
     private final Set<ModzItem> uniques;
 
@@ -79,21 +81,34 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
     private final AtomicBoolean changed;
 
-    public ModzList() {
-        changed = new AtomicBoolean(false);
+    public ModzList(ModzView view) {
+        this.view = view;
 
         addStyleClasses("modz-list");
 
+        changed = new AtomicBoolean(false);
+        saver = Executors.newSingleThreadScheduledExecutor();
+
+        var task = saver.scheduleWithFixedDelay(this::backup, 10, 10, SECONDS);
+        getMainStage().addEventFilter(WINDOW_HIDING, event -> {
+            try {
+                task.cancel(false);
+                saver.submit(this::backup);
+            } finally {
+                saver.shutdown();
+            }
+        });
+
         var btns = new VBox();
-        btns.getStyleClass().add("modz-vbox-btns");
+        btns.getStyleClass().add("modz-list-btns");
 
-        view = new ListView<>();
-        view.getStyleClass().add("modz-list-view");
+        var list = new ListView<ModzItem>();
+        list.getStyleClass().add("modz-list-view");
 
-        widthProperty().addListener(prop(false, width ->
-                view.setOpacity(width.doubleValue() > btns.getWidth() + 35.0 ? 1.0 : 0.0)));
+        widthProperty().addListener(ModzUtil.prop(false, width ->
+                list.setOpacity(width.doubleValue() > btns.getWidth() + 35.0 ? 1.0 : 0.0)));
 
-        model = view.getSelectionModel();
+        model = list.getSelectionModel();
         model.setSelectionMode(MULTIPLE);
 
         var hints = create(List.<String>of());
@@ -102,174 +117,105 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         var search = new TextField();
         search.setPrefWidth(248.0);
 
-        bindAutoCompletion(search, hints);
+        TextFields.bindAutoCompletion(search, hints);
 
-        uploaded = observableArrayList(item -> toArray(item.checkedProperty(), item.invalidProperty()));
-        uploaded.addListener(list(items -> {
+        uploaded = FXCollections.observableArrayList(item ->
+                ArrayUtils.toArray(item.disabledProperty(), item.includedProperty(), item.tags()));
+
+        uploaded.addListener(ModzUtil.list(items -> {
             for (int i = 0; i < items.size(); i++) {
                 items.get(i).setPriority(i);
             }
-            changed.set(true);
 
             hints.clearSuggestions();
-            hints.addPossibleSuggestions(items
-                    .stream().map(ModzItem::getTitle).toList());
+            hints.addPossibleSuggestions(items.stream().map(ModzItem::name).toList());
+
+            changed.set(true);
         }));
 
         selected = model.getSelectedItems();
-        selected.addListener(list((selected, item) -> item.setSelected(selected)));
+        selected.addListener(ModzUtil.list((selected, item) -> item.setSelected(selected)));
 
         filtered = new FilteredList<>(uploaded);
 
-        view.itemsProperty()
+        list.itemsProperty()
                 .bind(new SimpleObjectProperty<>(filtered));
 
-        uniques = new HashSet<>(1000);
+        uniques = new HashSet<>(1500);
 
-        var hbox = new HBox(btns, view);
-        HBox.setHgrow(view, ALWAYS);
+        var pane = new Pane(btns);
+        pane.getStyleClass().add("modz-list-pane");
+
+        var hbox = new HBox(pane, list);
+        HBox.setHgrow(list, ALWAYS);
 
         getChildren().add(hbox);
         setCursor(HAND);
 
-        initListView(view);
+        init(list);
 
         var loader = new ModzLoad(this);
 
         var remover = new Button("", new ModzIcon(TRASH_CAN_OUTLINE));
         remover.setOnAction(event -> removeSelected());
 
-        var finder = new MenuButton("", new FontIcon(MAGNIFY), new CustomMenuItem() {{
-            setContent(search);
-            setHideOnClick(false);
-        }});
+        var checks = new HashSet<String>();
+        var filtering = (Runnable) () -> filtered.setPredicate(item -> {
+            var used = StringUtils.containsIgnoreCase(item.toString(), search.getText()) &&
+                    (checks.isEmpty() || item.tags().containsAll(checks));
+
+            if (item.isSelected() && !used) {
+                model.clearSelection(filtered.indexOf(item));
+            }
+
+            return used;
+        });
+
+        var finder = new MenuButton("", new FontIcon(MAGNIFY), new CustomMenuItem(search, false));
         finder.getStyleClass().add("modz-search");
         finder.setPopupSide(LEFT);
 
-        var states = observableArrayList(0, 0, 0, 0, 0, 0, 0, (Object) "");
-        var filter = new MenuButton("", new FontIcon(FILTER_CHECK_OUTLINE),
-                new CustomMenuItem() {{
-                    var icon = new ModzIcon(CHECKBOX_INTERMEDIATE_VARIANT, CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OUTLINE);
-                    setContent(icon);
-                    setOnAction(event -> states.set(6, icon.nextState()));
-                    setHideOnClick(false);
-                }},
-                new CustomMenuItem() {{
-                    var icon = new ModzIcon(PROGRESS_ALERT, PROGRESS_CHECK, PROGRESS_CLOSE);
-                    setContent(icon);
-                    setOnAction(event -> states.set(5, icon.nextState()));
-                    setHideOnClick(false);
-                }},
-                new CustomMenuItem() {{
-                    var icon = new ModzIcon(STEERING, STEERING_OFF);
-                    setContent(icon);
-                    setOnAction(event -> states.set(1, icon.nextState()));
-                    setHideOnClick(false);
-                }},
-                new CustomMenuItem() {{
-                    var icon = new ModzIcon(CHECKBOX_INTERMEDIATE, CHECKBOX_BLANK_OFF_OUTLINE);
-                    setContent(icon);
-                    setOnAction(event -> states.set(2, icon.nextState()));
-                    setHideOnClick(false);
-                }},
-                new CustomMenuItem() {{
-                    var icon = new ModzIcon(IMAGE_OUTLINE, IMAGE_OFF_OUTLINE);
-                    setContent(icon);
-                    setOnAction(event -> states.set(4, icon.nextState()));
-                    setHideOnClick(false);
-                }},
-                new CustomMenuItem() {{
-                    var icon = new ModzIcon(COG_OUTLINE, COG_OFF_OUTLINE);
-                    setContent(icon);
-                    setOnAction(event -> states.set(3, icon.nextState()));
-                    setHideOnClick(false);
-                }}
-        );
+        var filter = new MenuButton("", new FontIcon(FILTER_CHECK_OUTLINE));
+        filter.getItems().addAll(ModzType.createAll(18).stream().map(type -> {
+            type.setState(false);
+
+            var item = new CustomMenuItem(type, false);
+            item.setOnAction(event -> {
+                if (checks.add(type.getId())) {
+                    type.setState(true);
+                } else {
+                    type.setState(false);
+                    checks.remove(type.getId());
+                }
+                filtering.run();
+            });
+            return item;
+        }).toList());
 
         search.textProperty()
-                .addListener(prop(state -> states.set(7, state)));
-
-        states.addListener(list(values ->
-                filtered.setPredicate(item -> {
-                    var title = (String) values.get(7);
-                    var visible = switch ((int) values.get(6)) {
-                        case 0 -> true;
-                        case 1 -> item.isChecked();
-                        case 2 -> !item.isChecked();
-                        default -> false;
-                    } && switch ((int) values.get(5)) {
-                        case 0 -> true;
-                        case 1 -> !item.isInvalid();
-                        case 2 -> item.isInvalid();
-                        default -> false;
-                    } && ((int) values.get(item.getType().ordinal())) == 0 &&
-                            (isBlank(title) || item.getTitle().toLowerCase().contains(title.toLowerCase()));
-                    if (!visible && item.isSelected()) {
-                        model.clearSelection(filtered.indexOf(item));
-                    }
-                    return visible;
-                })
-        ));
+                .addListener(ModzUtil.prop(filtering));
 
         var sorter = new MenuButton("", new FontIcon(SORT),
-                new CustomMenuItem(new ModzIcon(SORT_ALPHABETICAL_ASCENDING), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::getTitle, CASE_INSENSITIVE_ORDER)));
-                }},
-                new CustomMenuItem(new ModzIcon(SORT_ALPHABETICAL_DESCENDING), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::getTitle, CASE_INSENSITIVE_ORDER).reversed()));
-                }},
-                new CustomMenuItem(new ModzIcon(SORT_BOOL_ASCENDING_VARIANT), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::isChecked)));
-                }},
-                new CustomMenuItem(new ModzIcon(SORT_BOOL_DESCENDING_VARIANT), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::isChecked).reversed()));
-                }},
-                new CustomMenuItem(new ModzIcon(SORT_BOOL_ASCENDING), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::isInvalid)));
-                }},
-                new CustomMenuItem(new ModzIcon(SORT_BOOL_DESCENDING), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::isInvalid).reversed()));
-                }},
-                new CustomMenuItem(new ModzIcon(SORT_ASCENDING), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::getType)));
-                }},
-                new CustomMenuItem(new ModzIcon(SORT_DESCENDING), false) {{
-                    setOnAction(event -> uploaded.sort(comparing(ModzItem::getType).reversed()));
-                }}
-        );
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::name, CASE_INSENSITIVE_ORDER)), /*      */ SORT_ALPHABETICAL_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::name, CASE_INSENSITIVE_ORDER).reversed()), SORT_ALPHABETICAL_DESCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isIncluded)), /*                        */ SORT_BOOL_ASCENDING_VARIANT),
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isIncluded).reversed()), /*             */ SORT_BOOL_DESCENDING_VARIANT),
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isDisabled)), /*                        */ SORT_BOOL_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isDisabled).reversed()), /*             */ SORT_BOOL_DESCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::getScore)), /*                          */ SORT_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::getScore).reversed()), /*               */ SORT_DESCENDING));
 
-        var picker = new ModzPick(uploaded, selected);
+        var folder = new Button("", new ModzIcon(FOLDER_OPEN_OUTLINE));
+        folder.setOnAction(event -> explore(model.getSelectedItem().path()));
 
-        var scrolling = (BiConsumer<Integer, Integer>) (index, steps) -> {
-            @SuppressWarnings("unchecked")
-            var flow = (VirtualFlow<ModzCell>) view.lookup(".virtual-flow");
+        var steam = new Button("", new ModzIcon(STEAM));
+        steam.setOnAction(event -> explore(STEAM_OPENURL + STEAM_WORKSHOP_URI + model.getSelectedItem().workshop()));
 
-            var first = flow.getFirstVisibleCell().getIndex();
-            var last = flow.getLastVisibleCell().getIndex();
+        var web = new Button("", new ModzIcon(WEB));
+        web.setOnAction(event -> explore(STEAM_WORKSHOP_URI + model.getSelectedItem().workshop()));
 
-            if (steps < 0) {
-                if (first + 2 > index) {
-                    index = first + steps;
-                    view.scrollTo(index);
-                    view.scrollTo(index);
-                }
-            } else if (steps > 0) {
-                if (last < index + 3) {
-                    if (filtered.size() - index > 3) {
-                        index = first + steps;
-                    } else {
-                        index = last;
-                    }
-                    view.scrollTo(index);
-                    view.scrollTo(index);
-                }
-            }
-        };
-
-        var swapping = (BiConsumer<Integer, Integer>) (prev, next) -> {
-            swap(uploaded, filtered.getSourceIndex(prev), filtered.getSourceIndex(next));
-            model.clearAndSelect(next);
-        };
+        var replacing = replacing();
+        var scrolling = scrolling(list);
 
         var tmover = new Button("", new FontIcon(CHEVRON_DOUBLE_UP));
         tmover.setOnAction(event -> {
@@ -277,24 +223,30 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             uploaded.removeAll(items);
             uploaded.addAll(filtered.isEmpty() ? 0 : filtered.getSourceIndex(0), items);
             model.selectRange(0, items.size());
-            view.scrollTo(0);
+            list.scrollTo(0);
         });
 
         var umover = new Button("", new FontIcon(CHEVRON_UP));
         umover.setOnAction(event -> {
-            var index = model.getSelectedIndex();
-            if (index > 0) {
-                swapping.accept(index, index - 1);
-                scrolling.accept(index, -1);
+            var i1 = model.getSelectedIndex();
+            if (i1 > 0) {
+                var i2 = i1 - 1;
+
+                replacing.accept(i1, i2);
+                scrolling.accept(i1, -1);
+                model.clearAndSelect(i2);
             }
         });
 
         var dmover = new Button("", new FontIcon(CHEVRON_DOWN));
         dmover.setOnAction(event -> {
-            var index = model.getSelectedIndex();
-            if (index < filtered.size() - 1) {
-                swapping.accept(index, index + 1);
-                scrolling.accept(index, 1);
+            var i1 = model.getSelectedIndex();
+            if (i1 < filtered.size() - 1) {
+                var i2 = i1 + 1;
+
+                replacing.accept(i1, i2);
+                scrolling.accept(i1, 1);
+                model.clearAndSelect(i2);
             }
         });
 
@@ -304,25 +256,59 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             uploaded.removeAll(items);
             uploaded.addAll(items);
             model.selectRange(filtered.size() - items.size(), filtered.size());
-            view.scrollTo(filtered.size() - 1);
+            list.scrollTo(filtered.size() - 1);
         });
 
-        var filer = new Button("", new ModzIcon(CONTENT_SAVE_COG_OUTLINE));
-        filer.setOnAction(event -> file());
+        var icon = new ModzIcon(
+                CLOSE_BOX_OUTLINE,
+                NUMERIC_0_BOX_OUTLINE,
+                NUMERIC_1_BOX_MULTIPLE_OUTLINE,
+                NUMERIC_2_BOX_MULTIPLE_OUTLINE,
+                NUMERIC_3_BOX_MULTIPLE_OUTLINE,
+                NUMERIC_4_BOX_MULTIPLE_OUTLINE,
+                NUMERIC_5_BOX_MULTIPLE_OUTLINE,
+                NUMERIC_6_BOX_MULTIPLE_OUTLINE,
+                NUMERIC_7_BOX_MULTIPLE_OUTLINE
+        );
+
+        var relay = (Consumer<Integer>) state -> view.setLayer(icon.setState(state) - 1);
+        relay.accept(1);
+
+        var layer = new MenuButton("", icon,
+                new ModzLvlMenuItem(0, relay, CLOSE_BOX_OUTLINE),
+                new ModzLvlMenuItem(1, relay, NUMERIC_0_BOX_OUTLINE),
+                new ModzLvlMenuItem(2, relay, NUMERIC_1_BOX_MULTIPLE_OUTLINE),
+                new ModzLvlMenuItem(3, relay, NUMERIC_2_BOX_MULTIPLE_OUTLINE),
+                new ModzLvlMenuItem(4, relay, NUMERIC_3_BOX_MULTIPLE_OUTLINE),
+                new ModzLvlMenuItem(5, relay, NUMERIC_4_BOX_MULTIPLE_OUTLINE),
+                new ModzLvlMenuItem(6, relay, NUMERIC_5_BOX_MULTIPLE_OUTLINE),
+                new ModzLvlMenuItem(7, relay, NUMERIC_6_BOX_MULTIPLE_OUTLINE),
+                new ModzLvlMenuItem(8, relay, NUMERIC_7_BOX_MULTIPLE_OUTLINE)
+        );
+
+        var picker = new ModzPick();
+
+        var saver = new Button("", new ModzIcon(DOWNLOAD));
+        saver.setOnAction(event -> save());
 
         btns.getChildren()
                 .addAll(loader, remover,
                         new Separator(HORIZONTAL),
-                        finder, filter, sorter, picker,
+                        finder, filter, sorter,
+                        new Separator(HORIZONTAL),
+                        folder, steam, web,
                         new Separator(HORIZONTAL),
                         tmover, umover, dmover, bmover,
                         new Separator(HORIZONTAL),
-                        filer);
+                        layer, picker,
+                        new Separator(HORIZONTAL),
+                        saver);
 
-        btns.getChildren()
-                .forEach(btn -> btn.setDisable(true));
-
-        loader.setDisable(false);
+        btns.getChildren().forEach(btn -> {
+            if (btn != loader && btn != picker && btn != layer) {
+                btn.setDisable(true);
+            }
+        });
 
         uploaded.addListener(list(items -> {
             var disabled = items.isEmpty();
@@ -330,7 +316,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             finder.setDisable(disabled);
             filter.setDisable(disabled);
             sorter.setDisable(disabled);
-            filer.setDisable(disabled);
+            saver.setDisable(disabled);
         }));
 
         selected.addListener(list(items -> {
@@ -344,19 +330,10 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
             umover.setDisable(disabled);
             dmover.setDisable(disabled);
+            folder.setDisable(disabled);
+            steam.setDisable(disabled);
+            web.setDisable(disabled);
         }));
-
-        saver = Executors.newSingleThreadScheduledExecutor();
-        var task = saver.scheduleWithFixedDelay(this::save, 10, 10, SECONDS);
-
-        getMainStage().addEventFilter(WINDOW_HIDING, event -> {
-            try {
-                task.cancel(false);
-                saver.submit(this::save);
-            } finally {
-                saver.shutdown();
-            }
-        });
     }
 
     public MultipleSelectionModel<ModzItem> getModel() {
@@ -383,23 +360,22 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
     }
 
     public List<ModzItem> removeSelected() {
-        var items = clearSelection();
-        items.forEach(item1 -> {
-            if (uniques.remove(item1) && uploaded.remove(item1)) {
-                uploaded.forEach(item2 -> {
-                    item2.remove(item1);
-                    item1.remove(item2);
+        var selected = clearSelection();
+        if (uploaded.removeAll(selected)) {
+            selected.forEach(s -> {
+                view.remove(s);
+                uploaded.forEach(u -> {
+                    u.remove(s);
+                    s.remove(u);
                 });
-            } else {
-                throw new IllegalStateException();
-            }
-        });
-
-        return items;
-    }
-
-    public void scrollSelected() {
-        view.scrollTo(model.getSelectedIndex());
+                if (!uniques.remove(s)) {
+                    throw new IllegalStateException();
+                }
+            });
+        } else {
+            throw new IllegalStateException();
+        }
+        return selected;
     }
 
     @Override
@@ -411,65 +387,65 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                     added.add(item);
                 });
                 uploaded.add(added);
+                view.add(added);
             } else {
-                getLogger().warn("failed to add item because it already exists: {}", added.getModPath());
+                getLogger().log(WARNING, "Item was skipped because it already exists: " + added.path());
             }
         });
     }
 
-    private void initListView(ListView<ModzItem> view) {
+    private void init(ListView<ModzItem> view) {
+        var robot = new Robot();
         var drag = new ModzDrag();
-        var dragged = drag.getDragged();
 
-        view.setOnDragDetected(event -> {
+        view.addEventFilter(DRAG_DETECTED, event -> {
             if (event.isPrimaryButtonDown() && event.isAltDown()) {
                 var items = clearSelection();
                 uploaded.removeAll(items);
-                dragged.addAll(items);
-                drag.drag();
+
+                drag.drag(items);
             }
         });
 
-        view.setOnMouseDragged(event -> {
-            if (!dragged.isEmpty()) {
+
+        view.addEventFilter(MOUSE_DRAGGED, event -> {
+            if (drag.isShowing()) {
                 model.clearSelection();
-                var cell = find(event.getPickResult(), ListCell.class);
+                var cell = find(event.getPickResult(), ModzCell.class);
                 if (cell != null) {
-                    model.select((ModzItem) cell.getItem());
+                    model.select(cell.getItem());
                 }
-                drag.drag();
+
+                drag.setX(robot.getMouseX() + 1.0);
+                drag.setY(robot.getMouseY());
             }
         });
 
-        view.setOnMouseReleased(event -> {
-            if (!dragged.isEmpty()) {
+        getMainStage().addEventFilter(MOUSE_RELEASED, event -> {
+            if (drag.isShowing()) {
                 var index = filtered.isEmpty() ? 0 : filtered.getSourceIndex(max(0, model.getSelectedIndex()));
-                if (uploaded.addAll(index, dragged)) {
+                var dropped = drag.drop();
+                if (uploaded.addAll(index, dropped)) {
                     model.clearSelection();
-                    model.selectRange(index, index + dragged.size());
+                    model.selectRange(index, index + dropped.size());
                     if (index == 0) {
                         view.scrollTo(index);
                     }
-                    drag.drop();
-                    dragged.clear();
                 }
             }
         });
 
-//      var cells = new ArrayList<ListCell<ModzItem>>();
-        var robot = new Robot();
-
         view.setCellFactory(unused -> {
             var cell = new ModzCell();
-            cell.layoutYProperty().addListener((prop, prev, next) -> {
-                if (cell.getItem() != null && !dragged.isEmpty()) {
+
+            cell.layoutYProperty().addListener(ModzUtil.prop(() -> {
+                if (cell.getItem() != null && drag.isShowing()) {
                     if (cell.contains(cell.screenToLocal(robot.getMousePosition()))) {
                         model.clearAndSelect(cell.getIndex());
                     }
                 }
-            });
+            }));
 
-//          cells.add(cell);
             return cell;
         });
 
@@ -479,56 +455,38 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                 case ESCAPE -> clearSelection();
                 case C -> {
                     if (event.isControlDown()) {
-                        var content = new ClipboardContent();
-                        content.putString(toINI(selected));
-                        var clipboard = getSystemClipboard();
-                        clipboard.setContent(content);
+                        clipboard(toINI(selected));
                     }
+                }
+            }
+        });
+
+        getMainStage().addEventFilter(ModzScroll.SCROLL, event -> {
+            var index = event.getPriority();
+            index = filtered.getViewIndex(index);
+            if (index > -1) {
+                view.scrollTo(index);
+                if (event.isSelected()) {
+                    if (!event.isMultiple()) {
+                        model.clearSelection();
+                    }
+                    model.select(index);
                 }
             }
         });
     }
 
-    private void file() {
-        var path = Path.of("modz.ini");
-        try (var stream = new FileOutputStream(path.toFile())) {
-            stream.write(toINI(uploaded, true).getBytes(UTF_8));
-            stream.flush();
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
-        }
-
-        explore(path, true);
-    }
-
-    private void save() {
+    public void backup() {
         if (changed.getAndSet(false)) {
-            try (var stream = new ObjectOutputStream(new FileOutputStream("modz.bin"))) {
-                var saves = new ArrayList<ModzSave>(uploaded.size());
-                for (var item : uploaded) {
-                    saves.add(new ModzSave(
-                            item.getModPath().toString(),
-                            Objects.toString(item.getMapPath(), null),
-
-                            item.getModId(),
-                            item.getModName(),
-                            Objects.toString(item.getMapFolder(), null),
-                            item.getWorkshopId(),
-                            item.getDescription(),
-
-                            item.getType(),
-                            item.getTiles(),
-
-                            new ArrayList<>(item.getReqs().keySet()),
-                            item.getImages().stream().map(img -> img.getUrl().substring(5)).toList(),
-
-                            web(item.getColor()),
-                            item.isChecked()
-                    ));
+            var path = getRootPath().resolve("list.bin");
+            try {
+                if (Files.exists(path)) {
+                    Files.copy(path, getRootPath().resolve("list.bak"), REPLACE_EXISTING);
                 }
-
-                stream.writeObject(saves);
-                stream.flush();
+                try (var stream = new ObjectOutputStream(new FileOutputStream(path.toFile()))) {
+                    stream.writeObject(uploaded.stream().map(ModzItem::export).toArray());
+                    stream.flush();
+                }
             } catch (IOException ex) {
                 throw new UncheckedIOException(ex);
             }
@@ -536,42 +494,32 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
     }
 
     public void load() {
-        var path = Path.of("modz.bin");
+        new Thread(() -> {
+            try {
+                load(getRootPath().resolve("list.bin"));
+            } catch (Exception ex) {
+                try {
+                    load(getRootPath().resolve("list.bak"));
+                } catch (Exception suppressed) {
+                    if (ex instanceof FileNotFoundException &&
+                            suppressed instanceof FileNotFoundException) {
+                        return;
+                    }
+                    ex.addSuppressed(suppressed);
+                    getLogger().log(WARNING, "Application could not restore states:", ex);
+                }
+            }
+        }).start();
+    }
 
-        if (!exists(path)) {
-            return;
+    public void load(Path path) throws FileNotFoundException {
+        if (!Files.exists(path)) {
+            throw new FileNotFoundException(path.toString());
         }
 
         try (var stream = new ObjectInputStream(new FileInputStream(path.toFile()))) {
-            @SuppressWarnings("unchecked")
-            var saves = (List<ModzSave>) stream.readObject();
-            var items = new ArrayList<ModzItem>(saves.size());
-
-            for (var save : saves) {
-                var item = new ModzItem(
-                        Path.of(save.modPath()),
-                        save.mapPath() == null ? null : Path.of(save.mapPath()),
-
-                        save.modId(),
-                        save.modName(),
-                        save.mapFolder(),
-                        save.workshopId(),
-                        save.description(),
-
-                        save.type(),
-                        save.tiles(),
-
-                        save.requires(),
-                        save.images()
-                );
-
-                item.setColor(Color.web(save.color()));
-                item.setChecked(save.checked());
-
-                items.add(item);
-            }
-
-            accept(items);
+            var items = Arrays.stream((Object[]) stream.readObject()).map(ModzItem::valueOf).toList();
+            Platform.runLater(() -> accept(items));
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         } catch (ClassNotFoundException ex) {
@@ -579,22 +527,84 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         }
     }
 
-    private record ModzSave(String modPath,
-                            String mapPath,
+    public void save() {
+        var path = getRootPath().resolve("server.ini");
+        try (var stream = new FileOutputStream(path.toFile())) {
+            stream.write(ModzUtil.toINI(uploaded, true).getBytes(UTF_8));
+            stream.flush();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
 
-                            String modId,
-                            String modName,
-                            String mapFolder,
-                            String workshopId,
-                            String description,
+        path = getRootPath().resolve("pzmap2dzi.txt");
+        try (var stream = new FileOutputStream(path.toFile())) {
+            stream.write(ModzUtil.toTXT(uploaded).getBytes(UTF_8));
+            stream.flush();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
 
-                            ModzType type,
-                            Collection<ModzTile> tiles,
+        ModzUtil.explore(getRootPath(), false);
+    }
 
-                            Collection<String> requires,
-                            Collection<String> images,
+    private BiConsumer<Integer, Integer> replacing() {
+        return (i1, i2) -> {
+            var min = filtered.getSourceIndex(Math.min(i1, i2));
+            var max = filtered.getSourceIndex(Math.max(i1, i2));
 
-                            String color,
-                            boolean checked) implements Serializable {
+            uploaded.add(max, uploaded.set(min, uploaded.remove(max)));
+        };
+    }
+
+    private BiConsumer<Integer, Integer> scrolling(ListView<ModzItem> list) {
+        return (index, steps) -> {
+            @SuppressWarnings("unchecked")
+            var flow = (VirtualFlow<ModzCell>) list.lookup(".virtual-flow");
+
+            var first = flow.getFirstVisibleCell().getIndex();
+            var last = flow.getLastVisibleCell().getIndex();
+
+            if (steps < 0) {
+                if (first + 2 > index) {
+                    index = first + steps;
+                    list.scrollTo(index);
+                    list.scrollTo(index);
+                }
+            } else if (steps > 0) {
+                if (last < index + 3) {
+                    if (filtered.size() - index > 3) {
+                        index = first + steps;
+                    } else {
+                        index = last;
+                    }
+                    list.scrollTo(index);
+                    list.scrollTo(index);
+                }
+            }
+        };
+    }
+
+    private static class ModzIconMenuItem extends CustomMenuItem {
+
+        ModzIconMenuItem(Consumer<Integer> consumer, Ikon... codes) {
+            this(consumer, new ModzIcon(codes));
+        }
+
+        ModzIconMenuItem(Consumer<Integer> consumer, ModzIcon icon) {
+            super(icon, false);
+            setOnAction(event -> consumer.accept(icon.nextState()));
+        }
+    }
+
+    private static class ModzLvlMenuItem extends CustomMenuItem {
+
+        ModzLvlMenuItem(int lvl, Consumer<Integer> consumer, Ikon... codes) {
+            this(lvl, consumer, new ModzIcon(codes));
+        }
+
+        ModzLvlMenuItem(int lvl, Consumer<Integer> consumer, ModzIcon icon) {
+            super(icon, false);
+            setOnAction(event -> consumer.accept(lvl));
+        }
     }
 }

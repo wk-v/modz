@@ -2,176 +2,175 @@ package ru.wkov.modz.data;
 
 import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
-import javafx.scene.image.Image;
-import javafx.scene.paint.Color;
+import javafx.collections.ObservableSet;
+import ru.wkov.modz.control.ModzCell;
+import ru.wkov.modz.http.ModzData;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
-import static java.lang.String.join;
-import static java.util.Objects.hash;
-import static java.util.Objects.requireNonNull;
-import static javafx.collections.FXCollections.observableHashMap;
-import static javafx.scene.paint.Color.BLACK;
-import static javafx.scene.paint.Color.GRAY;
-import static org.apache.commons.lang3.StringUtils.leftPad;
-import static ru.wkov.modz.ModzUtil.color;
-import static ru.wkov.modz.ModzUtil.prop;
-import static ru.wkov.modz.data.ModzType.MAPZ;
-import static ru.wkov.modz.data.ModzType.NULL;
+import static java.util.stream.Collectors.toMap;
+import static javafx.collections.FXCollections.*;
+import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
+import static ru.wkov.modz.ModzUtil.*;
 
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)
  */
-public class ModzItem {
+public record ModzItem(Path path,
+                       String id,
+                       String name,
+                       String workshop,
+                       String description,
+                       ObservableSet<String> tags,
+                       ObservableList<String> imgs,
+                       ObservableList<MapzItem> maps,
+                       ObservableMap<String, ModzItem> reqs,
+                       ObservableMap<String, ModzItem> used,
+                       BooleanProperty disabledProperty,
+                       BooleanProperty expandedProperty,
+                       BooleanProperty includedProperty,
+                       BooleanProperty selectedProperty,
+                       IntegerProperty detailedProperty,
+                       IntegerProperty priorityProperty,
+                       ObjectProperty<ModzCell> cellProperty,
+                       ObjectProperty<ModzData> dataProperty,
+                       ChangeListener<Boolean> listener) {
 
-    private final Path modPath;
+    public ModzItem {
+        listener = prop(() -> disabledProperty.set(reqs.values().stream()
+                .anyMatch(item -> !item.isIncluded() || item.isDisabled())));
 
-    private final Path mapPath;
+        disabledProperty.addListener(prop(invalid -> {
+            var cell = cellProperty.get();
+            if (cell != null) cell.setInvalid(invalid);
+        }));
 
-    private final String title;
+        includedProperty.addListener(prop(checked -> {
+            var cell = cellProperty.get();
+            if (cell != null) cell.setChecked(checked);
+        }));
 
-    private final String modId;
+        priorityProperty.addListener(prop(number -> {
+            var cell = cellProperty.get();
+            if (cell != null) cell.setNumber(number.intValue());
+        }));
 
-    private final String modName;
+        imgs.addListener(list(urls -> {
+            var cell = cellProperty.get();
+            if (cell != null) cell.setImgs(urls);
+        }));
 
-    private final String mapFolder;
-
-    private final String workshopId;
-
-    private final String description;
-
-    private final ModzType type;
-
-    private final List<Image> images;
-
-    private final Set<ModzTile> tiles;
-
-    private final ObservableMap<String, ModzItem> reqs;
-
-    private final ObservableMap<String, ModzItem> used;
-
-    private final ObjectProperty<Color> color;
-
-    private final BooleanProperty checked;
-
-    private final BooleanProperty invalid;
-
-    private final BooleanProperty expanded;
-
-    private final BooleanProperty selected;
-
-    private final IntegerProperty priority;
-
-    private final IntegerProperty detailed;
-
-    private final ChangeListener<Boolean> listener;
-
-    public ModzItem(String modId) {
-        modPath = null;
-        mapPath = null;
-
-        title = "<unknown> " + modId;
-        this.modId = modId;
-        modName = null;
-        mapFolder = null;
-        workshopId = null;
-        description = null;
-
-        type = NULL;
-        tiles = null;
-        reqs = null;
-        used = null;
-        images = null;
-
-        color = new SimpleObjectProperty<>(GRAY);
-        checked = new SimpleBooleanProperty(true);
-        invalid = new SimpleBooleanProperty(true);
-        expanded = null;
-        selected = null;
-        priority = new SimpleIntegerProperty(-1);
-        detailed = null;
-
-        listener = null;
+        tags.addListener(set(keys -> {
+            var cell = cellProperty.get();
+            if (cell != null) cell.setTags(keys);
+        }));
     }
 
-    public ModzItem(Path modPath,
-                    Path mapPath,
+    public static ModzItem valueOf(String id) {
+        return new ModzItem(
+                null,
+                id,
+                "[no name]",
+                null,
+                "[no description]",
+                emptyObservableSet(),
+                emptyObservableList(),
+                emptyObservableList(),
+                emptyObservableMap(),
+                emptyObservableMap(),
+                new SimpleBooleanProperty(true),
+                new SimpleBooleanProperty(false),
+                new SimpleBooleanProperty(false),
+                new SimpleBooleanProperty(false),
+                new SimpleIntegerProperty(-1),
+                new SimpleIntegerProperty(-1),
+                new SimpleObjectProperty<>(),
+                new SimpleObjectProperty<>(),
+                null
+        );
+    }
 
-                    String modId,
-                    String modName,
-                    String mapFolder,
-                    String workshopId,
-                    String description,
-
-                    ModzType type,
-                    Collection<ModzTile> tiles,
-
-                    Collection<String> requires,
-                    Collection<String> images) {
-
-        this.modPath = requireNonNull(modPath);
-        this.mapPath = mapPath;
-
-        this.modId = requireNonNull(modId);
-        this.modName = requireNonNull(modName);
-        this.mapFolder = mapFolder;
-        this.workshopId = requireNonNull(workshopId);
-        this.description = requireNonNull(description);
-
-        this.type = requireNonNull(type);
-
-        this.tiles = (tiles == null || tiles.isEmpty())
-                ? Set.of()
-                : new HashSet<>(tiles);
-
-        this.images = (images == null || images.isEmpty())
-                ? List.of()
-                : images
-                .stream()
-                .map(modPath::resolve)
-                .filter(Files::exists)
-                .map(p -> new Image("file:" + p, true))
-                .toList();
-
-        reqs = observableHashMap();
-        if (requires != null) {
-            requires.forEach(key ->
-                    reqs.put(key, new ModzItem(key)));
+    public static ModzItem valueOf(Path path) {
+        var temp = path.resolve("mod.info");
+        if (!Files.exists(temp)) {
+            return null;
         }
 
-        used = observableHashMap();
+        var info = new ModzInfo();
+        try {
+            info.load(temp);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
 
-        title = modName + (type == MAPZ ? " | " + mapFolder : "");
-        color = new SimpleObjectProperty<>(type == MAPZ ? color() : BLACK);
+        var maps = new ArrayList<MapzItem>();
+        temp = path.resolve(Path.of("media", "maps"));
+        if (Files.exists(temp)) {
+            try (var stream = Files.list(temp)) {
+                var priority = new AtomicInteger(0);
+                stream.map(MapzItem::valueOf).forEach(map -> {
+                    maps.add(priority.get(), map);
+                    map.setPriority(priority.getAndIncrement());
+                });
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        }
 
-        checked = new SimpleBooleanProperty(true);
-        invalid = new SimpleBooleanProperty(false);
-        expanded = new SimpleBooleanProperty(false);
-        selected = new SimpleBooleanProperty(false);
-        priority = new SimpleIntegerProperty(-1);
-        detailed = new SimpleIntegerProperty(0);
+        var imgs = new ArrayList<String>();
+        for (var poster : info.<String>all("poster")) {
+            imgs.add("file:" + path.resolve(poster));
+        }
 
-        listener = prop(() -> invalid.set(this.reqs.values().stream()
-                .anyMatch(item -> item == ModzItem.this || !item.isChecked() || item.isInvalid())));
+        var reqs = new HashMap<String, ModzItem>();
+        for (var id : info.<String>all("require")) {
+            reqs.put(id, ModzItem.valueOf(id));
+        }
+
+        return new ModzItem(
+                path,
+                info.one("id"),
+                info.one("name"),
+                path.getParent().getParent().getFileName().toString(),
+                defaultIfBlank(info.one("description"), "[no description]"),
+                observableSet(),
+                observableList(imgs),
+                observableList(maps),
+                observableMap(reqs),
+                observableHashMap(),
+                new SimpleBooleanProperty(!reqs.isEmpty()),
+                new SimpleBooleanProperty(false),
+                new SimpleBooleanProperty(true),
+                new SimpleBooleanProperty(false),
+                new SimpleIntegerProperty(0),
+                new SimpleIntegerProperty(0),
+                new SimpleObjectProperty<>(),
+                new SimpleObjectProperty<>(),
+                null
+        );
     }
 
     public void add(ModzItem next) {
-        if (next.getType() == MAPZ) {
-            return;
-        }
-
-        reqs.computeIfPresent(next.getModId(), (modId, prev) -> {
-            if (prev.getType() != NULL) {
+        reqs.computeIfPresent(next.id, (id, prev) -> {
+            if (prev == next) {
                 throw new IllegalStateException();
             }
 
-            next.checkedProperty().addListener(listener);
-            next.invalidProperty().addListener(listener);
+            next.disabledProperty.addListener(listener);
+            next.includedProperty.addListener(listener);
 
-            next.used.put(this.modId, this);
+            next.used.put(this.id, this);
 
             return next;
         });
@@ -180,208 +179,142 @@ public class ModzItem {
     }
 
     public void remove(ModzItem next) {
-        if (next.getType() == MAPZ) {
-            return;
-        }
-
-        reqs.computeIfPresent(next.getModId(), (modId, prev) -> {
+        reqs.computeIfPresent(next.id, (modId, prev) -> {
             if (prev != next) {
                 throw new IllegalStateException();
             }
 
-            next.checkedProperty().removeListener(listener);
-            next.invalidProperty().removeListener(listener);
+            next.disabledProperty.removeListener(listener);
+            next.includedProperty.removeListener(listener);
 
-            next.used.remove(this.modId);
+            next.used.remove(this.id);
 
-            return new ModzItem(modId);
+            return ModzItem.valueOf(modId);
         });
 
         listener.changed(null, null, null);
     }
 
-    public Path getModPath() {
-        return modPath;
+    public boolean isDisabled() {
+        return disabledProperty.get();
     }
 
-    public Path getMapPath() {
-        return mapPath;
-    }
-
-    public String getNum() {
-        return leftPad(String.valueOf(priority.get() + 1), 4);
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getModId() {
-        return modId;
-    }
-
-    public String getModName() {
-        return modName;
-    }
-
-    public String getMapFolder() {
-        return mapFolder;
-    }
-
-    public String getWorkshopId() {
-        return workshopId;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public ModzType getType() {
-        return type;
-    }
-
-    public List<Image> getImages() {
-        return images;
-    }
-
-    public Set<ModzTile> getTiles() {
-        return tiles;
-    }
-
-    public ObservableMap<String, ModzItem> getReqs() {
-        return reqs;
-    }
-
-    public ObservableMap<String, ModzItem> getUsed() {
-        return used;
-    }
-
-    public ObjectProperty<Color> colorProperty() {
-        return color;
-    }
-
-    public BooleanProperty checkedProperty() {
-        return checked;
-    }
-
-    public BooleanProperty invalidProperty() {
-        return invalid;
-    }
-
-    public BooleanProperty expandedProperty() {
-        return expanded;
-    }
-
-    public BooleanProperty selectedProperty() {
-        return selected;
-    }
-
-    public IntegerProperty priorityProperty() {
-        return priority;
-    }
-
-    public IntegerProperty detailedProperty() {
-        return detailed;
-    }
-
-    public Color getColor() {
-        return color.get();
-    }
-
-    public void setColor(Color color) {
-        this.color.set(color);
-    }
-
-    public boolean isChecked() {
-        return checked.get();
-    }
-
-    public void setChecked(boolean checked) {
-        this.checked.set(checked);
-    }
-
-    public boolean isInvalid() {
-        return invalid.get();
-    }
-
-    public void setInvalid(boolean invalid) {
-        this.invalid.set(invalid);
+    public void setDisabled(boolean disabled) {
+        disabledProperty.set(disabled);
     }
 
     public boolean isExpanded() {
-        return expanded.get();
+        return expandedProperty.get();
     }
 
     public void setExpanded(boolean expanded) {
-        this.expanded.set(expanded);
+        expandedProperty.set(expanded);
+    }
+
+    public boolean isIncluded() {
+        return includedProperty.get();
+    }
+
+    public void setIncluded(boolean included) {
+        includedProperty.set(included);
     }
 
     public boolean isSelected() {
-        return selected.get();
+        return selectedProperty.get();
     }
 
     public void setSelected(boolean selected) {
-        this.selected.set(selected);
-    }
-
-    public int getPriority() {
-        return priority.get();
-    }
-
-    public void setPriority(int priority) {
-        this.priority.set(priority);
+        selectedProperty.set(selected);
     }
 
     public int getDetailed() {
-        return detailed.get();
+        return detailedProperty.get();
     }
 
     public void setDetailed(int detailed) {
-        this.detailed.set(detailed);
+        detailedProperty.set(detailed);
+    }
+
+    public int getPriority() {
+        return priorityProperty.get();
+    }
+
+    public void setPriority(int priority) {
+        priorityProperty.set(priority);
+    }
+
+    public double getScore() {
+        var data = dataProperty.get();
+        if (data == null) {
+            return 0.0;
+        }
+        return data.getRate().getScore();
     }
 
     @Override
     public boolean equals(Object object) {
         return object instanceof ModzItem that &&
-                Objects.equals(this.modId, that.modId) &&
-                Objects.equals(this.mapFolder, that.mapFolder);
+                Objects.equals(this.id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return hash(modId, mapFolder, workshopId);
+        return Objects.hashCode(id);
     }
 
     @Override
     public String toString() {
-        return "Workshop ID: " + workshopId + "\n" +
-                "Mod ID: " + modId + "\n" +
-                (type == MAPZ ? ("Map Folder: " + mapFolder + "\n") : "") + "\n" +
-                description;
+        return name + " <" + id + ">";
     }
 
-    public static String toINI(Iterable<ModzItem> items) {
-        return toINI(items, false);
+    public Object[] export() {
+        return new Object[]{
+                path.toString(),
+                id,
+                name,
+                workshop,
+                description,
+                tags.toArray(String[]::new),
+                imgs.toArray(String[]::new),
+                maps.stream().map(MapzItem::export).toArray(),
+                reqs.keySet().toArray(String[]::new),
+                isIncluded(),
+                dataProperty.get()
+        };
     }
 
-    public static String toINI(Iterable<ModzItem> items, boolean filter) {
-        var mods = new LinkedHashSet<String>();
-        var maps = new LinkedHashSet<String>();
-        var work = new LinkedHashSet<String>();
+    public static ModzItem valueOf(Object export) {
+        return valueOf((Object[]) export);
+    }
 
-        items.forEach(item -> {
-            if (filter && (!item.isChecked() || item.isInvalid())) {
-                return;
-            }
+    public static ModzItem valueOf(Object[] export) {
+        var maps = Arrays.stream((Object[]) export[7]).map(MapzItem::valueOf).toList();
+        var reqs = Arrays.stream((String[]) export[8]).collect(toMap(Function.identity(), ModzItem::valueOf));
 
-            if (item.type == MAPZ) {
-                maps.add(item.mapFolder);
-            } else {
-                mods.add(item.modId);
-                work.add(item.workshopId);
-            }
-        });
+        var item = new ModzItem(
+                Path.of(export[0].toString()),
+                export[1].toString(),
+                export[2].toString(),
+                export[3].toString(),
+                export[4].toString(),
+                observableSet((String[]) export[5]),
+                observableArrayList((String[]) export[6]),
+                observableArrayList(maps),
+                observableMap(reqs),
+                observableHashMap(),
+                new SimpleBooleanProperty(!reqs.isEmpty()),
+                new SimpleBooleanProperty(false),
+                new SimpleBooleanProperty((Boolean) export[9]),
+                new SimpleBooleanProperty(false),
+                new SimpleIntegerProperty(0),
+                new SimpleIntegerProperty(0),
+                new SimpleObjectProperty<>(),
+                new SimpleObjectProperty<>(),
+                null
+        );
 
-        return "Mods=" + join(";", mods) + "\nMap=" + join(";", maps) + "\nWorkshopItems=" + join(";", work) + "\n";
+        item.dataProperty.set((ModzData) export[10]);
+
+        return item;
     }
 }

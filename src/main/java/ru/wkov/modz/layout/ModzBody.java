@@ -14,8 +14,8 @@ public class ModzBody extends StackPane implements ModzBean {
     public ModzBody() {
         addStyleClasses("modz-body");
 
-        var list = new ModzList();
-        var view = new ModzView(list);
+        var view = new ModzView();
+        var list = new ModzList(view);
 
         var pane = new SplitPane(view, list);
         pane.setDividerPositions(0.5);

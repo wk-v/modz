@@ -1,5 +1,8 @@
 package ru.wkov.modz.control;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.scene.Node;
 import javafx.scene.control.Pagination;
 import javafx.scene.control.Skin;
 import javafx.scene.control.Tooltip;
@@ -7,24 +10,29 @@ import javafx.scene.control.skin.PaginationSkin;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
+import javafx.util.Callback;
 import ru.wkov.modz.ModzBean;
 
 import java.util.List;
 
+import static java.util.Collections.emptyList;
 import static javafx.scene.control.ContentDisplay.GRAPHIC_ONLY;
 import static javafx.scene.input.MouseEvent.MOUSE_PRESSED;
 import static javafx.stage.Screen.getPrimary;
+import static ru.wkov.modz.ModzUtil.prop;
 
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)
  */
 public class ModzPage extends Pagination implements ModzBean {
 
-    private final List<Image> empty;
+    private final Callback<Integer, Node> paging;
+
+    private final BooleanProperty expanded;
 
     private final ImageView preview;
 
-    private List<Image> pages;
+    private List<? extends String> urls;
 
     public ModzPage(double width, double height) {
         addStyleClasses("modz-page");
@@ -37,14 +45,22 @@ public class ModzPage extends Pagination implements ModzBean {
         preview = new ImageView();
         preview.setPreserveRatio(true);
 
-        empty = List.of(getBlackLogo());
-        pages = empty;
+        urls = emptyList();
 
-        setPageFactory(index -> {
-            var page = pages.get(index);
-            preview.setImage(page);
+        expanded = new SimpleBooleanProperty(false);
 
-            if (page.getHeight() > page.getWidth()) {
+        paging = index -> {
+            var img = getBlackLogo();
+
+            var size = expanded.get() ? urls.size() : 0;
+            if (size > 0) {
+                img = new Image(urls.get(index), true);
+            }
+
+            setPageCount(Math.max(size, 1));
+            preview.setImage(img);
+
+            if (img.getHeight() > img.getWidth()) {
                 preview.setFitWidth(0.0);
                 preview.setFitHeight(height - 2.0);
             } else {
@@ -53,7 +69,11 @@ public class ModzPage extends Pagination implements ModzBean {
             }
 
             return preview;
-        });
+        };
+
+        expanded.addListener(prop(() -> paging.call(0)));
+
+        setPageFactory(paging);
 
         var view = new ImageView();
         view.imageProperty()
@@ -79,11 +99,14 @@ public class ModzPage extends Pagination implements ModzBean {
         });
     }
 
-    public void setImages(List<Image> images) {
-        pages = (images == null || images.isEmpty()) ? empty : images;
+    public void setExpanded(boolean expanded) {
+        this.expanded.set(expanded);
+    }
 
-        preview.setImage(pages.get(0));
-        setPageCount(pages.size());
+    public void setUrls(List<? extends String> urls) {
+        this.urls = urls;
+
+        paging.call(0);
         setCurrentPageIndex(0);
     }
 

@@ -2,18 +2,25 @@ package ru.wkov.modz.control;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.geometry.Point2D;
 import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.robot.Robot;
 import ru.wkov.modz.ModzBean;
+import ru.wkov.modz.data.MapzTile;
+import ru.wkov.modz.layout.ModzArea;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static javafx.scene.control.ContentDisplay.GRAPHIC_ONLY;
-import static javafx.scene.input.MouseButton.PRIMARY;
-import static javafx.scene.input.MouseEvent.*;
+import static javafx.scene.input.MouseEvent.ANY;
 import static javafx.stage.WindowEvent.WINDOW_SHOWING;
 import static javafx.util.Duration.INDEFINITE;
 import static javafx.util.Duration.ZERO;
@@ -26,13 +33,26 @@ public class ModzHint extends Tooltip implements ModzBean {
 
     private static final double CORR_SIZE = 12.0;
 
-    private final VBox vbox;
+    private final BooleanProperty visible;
 
-    public ModzHint(Node node) {
+    private final List<Label> labels;
+
+    private final Label coords;
+
+    private final Label cell;
+
+    private final VBox maps;
+
+    public ModzHint(Node owner) {
+        install(owner, this);
+
         visible = new SimpleBooleanProperty(false);
         visible.addListener(prop(value -> setOpacity(value ? 1.0 : 0.0)));
 
-        vbox = new VBox();
+        labels = new ArrayList<>(10);
+        coords = new Label();
+        cell = new Label();
+        maps = new VBox();
 
         setConsumeAutoHidingEvents(false);
         setContentDisplay(GRAPHIC_ONLY);
@@ -40,52 +60,77 @@ public class ModzHint extends Tooltip implements ModzBean {
         setShowDuration(INDEFINITE);
         setShowDelay(ZERO);
         setHideDelay(ZERO);
-        setGraphic(vbox);
-        setOpacity(0.0);
+        setGraphic(new VBox(new HBox(new Label("Coords: "), coords), new HBox(new Label("  Cell: "), cell), maps));
+        setVisible(true);
 
-        addEventFilter(WINDOW_SHOWING, e -> {
-            setY(getY() + CORR_SIZE);
-            setX(getX() + CORR_SIZE);
-        });
+        var moving = new EventHandler<>() {
 
-        var moved = new SimpleObjectProperty<MouseEvent>();
-        var robot = new Robot();
+            final Robot robot = new Robot();
 
-        node.addEventFilter(ANY, event -> {
-            setY(robot.getMouseY() + CORR_SIZE);
-            setX(robot.getMouseX() + CORR_SIZE);
-
-            var type = event.getEventType();
-            var btn = event.getButton();
-
-            if (type == MOUSE_MOVED) {
-                moved.set(event);
-            } else if (type == MOUSE_CLICKED && btn == PRIMARY) {
-                var saved = moved.get();
-                if (saved != null) {
-                    node.fireEvent(saved.copyFor(event.getSource(), event.getTarget()));
-                }
+            @Override
+            public void handle(Event event) {
+                setX(robot.getMouseX() + CORR_SIZE);
+                setY(robot.getMouseY() + CORR_SIZE);
             }
-        });
+        };
 
-        install(node, this);
+        addEventFilter(WINDOW_SHOWING, moving);
+        owner.addEventFilter(ANY, moving);
     }
 
-    public ObservableList<Node> getChildren() {
-        return vbox.getChildren();
+    public String getCoords() {
+        return coords.getText();
     }
 
-    private final BooleanProperty visible;
+    public String getCell() {
+        return cell.getText();
+    }
+
+    @SuppressWarnings("all")
+    public ObservableList<Label> getMaps() {
+        return (ObservableList) maps.getChildren();
+    }
 
     public BooleanProperty visibleProperty() {
         return visible;
     }
 
     public Boolean isVisible() {
-        return visibleProperty().get();
+        return visible.get();
     }
 
-    public void setVisible(Boolean visible) {
-        visibleProperty().set(visible != null && visible);
+    public void setVisible(boolean visible) {
+        this.visible.set(visible);
+    }
+
+    public void refresh(Point2D point, List<ModzArea> areas) {
+        var x = point.getX();
+        var y = point.getY();
+
+        var size = getTileSize();
+        var diff = 300.0 / size;
+
+        var tile = new MapzTile((int) (x / size), (int) (y / size));
+
+        coords.setText((int) (x * diff) + " x " + (int) (y * diff));
+        cell.setText(tile.x() + " x " + tile.y());
+
+        var i = 0;
+        for (var area : areas) {
+            var map = area.getMap();
+            if (map.tiles().contains(tile)) {
+                if (labels.size() == i) {
+                    labels.add(new Label());
+                }
+                var label = labels.get(i++);
+                var mod = area.getMod();
+
+                label.setText(String.format("% 6d: %s - %s", mod.getPriority() + 1, mod.name(), map.name()));
+                label.setTextFill(map.getColor());
+                label.setUserData(mod.getPriority());
+            }
+        }
+
+        getMaps().setAll(labels.subList(0, i));
     }
 }

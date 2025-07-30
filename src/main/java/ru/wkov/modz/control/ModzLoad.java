@@ -5,47 +5,42 @@ import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.stage.DirectoryChooser;
+import org.apache.commons.lang3.StringUtils;
 import org.controlsfx.dialog.ProgressDialog;
 import org.kordamp.ikonli.javafx.FontIcon;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ru.wkov.modz.ModzBean;
-import ru.wkov.modz.ModzInfo;
 import ru.wkov.modz.data.ModzItem;
-import ru.wkov.modz.data.ModzTile;
+import ru.wkov.modz.http.ModzHttp;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
+import java.io.UncheckedIOException;
+import java.net.URI;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
+import static java.lang.Integer.min;
 import static java.nio.file.FileSystems.getDefault;
 import static java.nio.file.FileVisitResult.*;
-import static java.nio.file.Files.exists;
-import static java.nio.file.Files.walkFileTree;
+import static java.time.ZoneId.systemDefault;
+import static java.util.logging.Level.WARNING;
 import static javafx.scene.control.Alert.AlertType.NONE;
 import static javafx.scene.control.ButtonType.*;
 import static javafx.scene.control.ContentDisplay.RIGHT;
 import static javafx.scene.control.OverrunStyle.CLIP;
 import static org.apache.commons.lang3.StringUtils.abbreviateMiddle;
-import static org.apache.commons.lang3.StringUtils.firstNonBlank;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FOLDER_OPEN_OUTLINE;
-import static ru.wkov.modz.data.ModzType.*;
+import static org.apache.commons.lang3.StringUtils.isNoneBlank;
+import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FILE_DOCUMENT_PLUS_OUTLINE;
 
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)
  */
 public class ModzLoad extends Button implements ModzBean {
-
-    private static final Logger logger = LoggerFactory.getLogger(ModzLoad.class);
 
     private static final List<String> DEFAULT_CONTENT_DIRS = List.of(
             "C:/Program Files (x86)/Steam/steamapps/workshop/content/108600/",
@@ -53,7 +48,11 @@ public class ModzLoad extends Button implements ModzBean {
             "D:/SteamLibrary/steamapps/workshop/content/108600/"
     );
 
+    private final ModzHttp http;
+
     public ModzLoad(Consumer<Collection<ModzItem>> consumer) {
+        http = new ModzHttp();
+
         var chooser = new DirectoryChooser();
         chooser.setTitle("Please select directory of installed mod(s)");
 
@@ -74,7 +73,7 @@ public class ModzLoad extends Button implements ModzBean {
         }));
 
         service.setOnFailed(event ->
-                logger.error("failed due to unexpected error", service.getException()));
+                getLogger().log(WARNING, "Loading was failed due to unexpected error:", service.getException()));
 
         var search = (Runnable) () -> {
             var file = chooser.showDialog(getMainStage());
@@ -138,15 +137,14 @@ public class ModzLoad extends Button implements ModzBean {
             progress.setY(getMainStage().getY() + (getMainStage().getHeight() - pane.getHeight()) / 2);
         });
 
-        setGraphic(new FontIcon(FOLDER_OPEN_OUTLINE));
+        setGraphic(new FontIcon(FILE_DOCUMENT_PLUS_OUTLINE));
         setOnMouseClicked(event -> search.run());
     }
 
-    private Service<List<ModzItem>> getService(DirectoryChooser chooser) {
+    private Service<Collection<ModzItem>> getService(DirectoryChooser chooser) {
         return new Service<>() {
-
             @Override
-            protected Task<List<ModzItem>> createTask() {
+            protected Task<Collection<ModzItem>> createTask() {
                 return new Task<>() {
 
                     static final PathMatcher PATH_MATCHER = // TODO only B41 is supported for now
@@ -154,128 +152,120 @@ public class ModzLoad extends Button implements ModzBean {
 
                     @Override
                     protected List<ModzItem> call() throws Exception {
-                        var items = new LinkedList<ModzItem>();
+                        var paths = new LinkedList<Path>();
 
-                        walkFileTree(chooser.getInitialDirectory().toPath(), new ModzVisitor() {
+                        Files.walkFileTree(chooser.getInitialDirectory().toPath(), new ModzVisitor() {
 
                             @Override
-                            public FileVisitResult preVisitDirectory(Path modPath, BasicFileAttributes modAttrs) {
-                                try {
-                                    updateMessage(abbreviateMiddle(modPath.toString(), "...", 65));
-                                    if (modAttrs.isDirectory() && PATH_MATCHER.matches(modPath)) {
-                                        var path = modPath.resolve("mod.info");
-                                        if (exists(path)) {
-                                            var info = new ModzInfo();
-                                            info.load(path);
+                            public FileVisitResult preVisitDirectory(Path path, BasicFileAttributes attrs) {
+                                if (isCancelled()) {
+                                    return TERMINATE;
+                                }
 
-                                            var maps = new HashMap<Path, Set<ModzTile>>();
+                                updateMessage(StringUtils.abbreviateMiddle(path.toString(), "...", 65));
 
-                                            path = modPath
-                                                    .resolve("media")
-                                                    .resolve("maps");
+                                if (attrs.isDirectory() && PATH_MATCHER.matches(path)) {
+                                    paths.add(path);
 
-                                            if (exists(path)) {
-                                                walkFileTree(path, new ModzVisitor() {
-
-                                                    @Override
-                                                    public FileVisitResult preVisitDirectory(Path mapPath, BasicFileAttributes mapAttrs) {
-                                                        updateMessage(abbreviateMiddle(mapPath.toString(), "...", 65));
-                                                        if (mapPath.getParent().endsWith("maps")) {
-                                                            maps.put(mapPath, new HashSet<>());
-                                                        }
-
-                                                        return CONTINUE;
-                                                    }
-
-                                                    @Override
-                                                    public FileVisitResult visitFile(Path mapPath, BasicFileAttributes mapAttrs) {
-                                                        updateMessage(abbreviateMiddle(mapPath.toString(), "...", 65));
-                                                        if (mapAttrs.isRegularFile()) {
-                                                            var name = mapPath.getFileName().toString();
-                                                            var d = name.indexOf(".lotheader");
-                                                            if (d != -1) {
-                                                                var u = name.indexOf('_');
-                                                                var x = name.substring(0, u);
-                                                                var y = name.substring(u + 1, d);
-
-                                                                maps.get(mapPath.getParent()).add(new ModzTile(x, y));
-                                                            }
-                                                        }
-
-                                                        return CONTINUE;
-                                                    }
-                                                });
-                                            }
-
-                                            var type = MODZ;
-
-                                            path = modPath.resolve("media");
-                                            if (exists(path.resolve("scripts").resolve("vehicles"))) {
-                                                type = CARZ;
-                                            } else if (!maps.isEmpty()) {
-                                                type = TXTR;
-                                            }
-
-                                            var modz = new ModzItem(
-                                                    modPath,
-                                                    null,
-                                                    info.val("id"),
-                                                    info.val("name"),
-                                                    null,
-                                                    modPath.getParent().getParent().getFileName().toString(),
-                                                    firstNonBlank(info.val("description"), "[no description]"),
-                                                    type,
-                                                    null,
-                                                    info.vals("require"),
-                                                    info.vals("poster")
-                                            );
-
-                                            items.add(modz);
-
-                                            maps.forEach((mapPath, tiles) -> {
-                                                var item = new ModzItem(
-                                                        modz.getModPath(),
-                                                        mapPath,
-                                                        modz.getModId(),
-                                                        modz.getModName(),
-                                                        mapPath.getFileName().toString(),
-                                                        modz.getWorkshopId(),
-                                                        modz.getDescription(),
-                                                        MAPZ,
-                                                        tiles,
-                                                        List.of(modz.getModId()),
-                                                        null
-                                                ) {
-
-                                                    @Override
-                                                    public List<Image> getImages() {
-                                                        return modz.getImages();
-                                                    }
-                                                };
-
-                                                items.add(item);
-                                            });
-                                        }
-
-                                        if (isCancelled()) {
-                                            return TERMINATE;
-                                        }
-
-                                        return SKIP_SUBTREE;
-                                    }
-                                } catch (Exception ex) {
-                                    logger.error("failed to parse content: {}", modPath, ex);
+                                    return SKIP_SUBTREE;
                                 }
 
                                 return CONTINUE;
                             }
                         });
 
+                        var maps = getRootPath().resolve("maps");
+                        var items = new LinkedHashMap<String, List<ModzItem>>(paths.size());
+                        var unknowns = new LinkedList<String>();
+
+                        var progress = 1;
+                        for (var path : paths) {
+                            if (isCancelled()) {
+                                updateMessage("canceling...");
+                                return null;
+                            }
+
+                            updateMessage(abbreviateMiddle(path.toString(), "...", 65));
+                            updateProgress(progress++, paths.size());
+
+                            var item = ModzItem.valueOf(path);
+                            if (item != null) {
+                                items.computeIfAbsent(item.workshop(), id -> new LinkedList<>()).add(item);
+                                for (var map : item.maps()) {
+                                    if (!map.isEmpty()) {
+                                        item.tags().add("Mapz");
+                                        if (!Files.exists(maps.resolve(map.hash()))) {
+                                            unknowns.add(map.hash());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         if (isCancelled()) {
+                            updateMessage("canceling...");
                             return null;
                         }
 
-                        return items;
+                        updateMessage("Waiting response from Steam...");
+                        updateProgress(-1, -1);
+
+                        var ids = new ArrayList<>(items.keySet());
+
+                        progress = 1;
+                        for (int i = 0; i < ids.size(); ) {
+                            for (var data : http.getDetails(ids.subList(i, min(i += 200, ids.size())))) {
+                                updateMessage("Loading details from workshop: " + data.getWorkshop());
+                                updateProgress(progress++, ids.size());
+
+                                data.setCreatedAt(data.getCreatedAt().withZoneSameInstant(systemDefault()));
+                                data.setUpdatedAt(data.getUpdatedAt().withZoneSameInstant(systemDefault()));
+
+                                var previews = data.getPreviews();
+                                var latch = new CountDownLatch(previews.size());
+                                var imgs = new LinkedList<String>();
+                                for (var preview : previews) {
+                                    if (isNoneBlank(preview.getName(), preview.getUrl())) {
+                                        var path = getRootPath().resolve(Path.of("imgs", data.getWorkshop(), preview.getName()));
+                                        imgs.add("file:" + path.toAbsolutePath());
+                                        if (!Files.exists(path)) {
+                                            new Thread(() -> {
+                                                try (var stream = URI.create(preview.getUrl()).toURL().openStream()) {
+                                                    Files.createDirectories(path.getParent());
+                                                    Files.copy(stream, path);
+                                                } catch (IOException ex) {
+                                                    throw new UncheckedIOException(ex);
+                                                } finally {
+                                                    latch.countDown();
+                                                }
+                                            }).start();
+                                            continue;
+                                        }
+                                    }
+                                    latch.countDown();
+                                }
+                                latch.await();
+
+                                for (var item : items.get(data.getWorkshop())) {
+                                    item.dataProperty().set(data);
+                                    for (var tag : data.getTags()) {
+                                        item.tags().add(tag.getName());
+                                    }
+                                    if (!imgs.isEmpty()) {
+                                        item.imgs().addAll(0, imgs);
+                                    }
+                                }
+                            }
+                        }
+
+
+                        if (!unknowns.isEmpty()) {
+                            var delimiter = "\n    - ";
+                            getLogger().log(WARNING, "Following maps don't have generated tiles:"
+                                    + delimiter + String.join(delimiter, unknowns));
+                        }
+
+                        return items.values().stream().flatMap(List::stream).toList();
                     }
                 };
             }
