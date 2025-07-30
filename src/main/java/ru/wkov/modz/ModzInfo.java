@@ -74,7 +74,7 @@ public class ModzInfo extends Properties {
             if ("name".equals(arg1) || "description".equals(arg1)) {
                 vals.add(clear(val));
             } else {
-                stream(split(val, ",;="))
+                stream(split(strip(val), ",;="))
                         .filter(this::filter)
                         .forEachOrdered(vals::add);
             }

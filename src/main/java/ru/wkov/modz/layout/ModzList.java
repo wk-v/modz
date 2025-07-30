@@ -275,7 +275,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         tmover.setOnAction(event -> {
             var items = clearSelection();
             uploaded.removeAll(items);
-            uploaded.addAll(filtered.getSourceIndex(0), items);
+            uploaded.addAll(filtered.isEmpty() ? 0 : filtered.getSourceIndex(0), items);
             model.selectRange(0, items.size());
             view.scrollTo(0);
         });
@@ -443,7 +443,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
         view.setOnMouseReleased(event -> {
             if (!dragged.isEmpty()) {
-                var index = filtered.getSourceIndex(max(0, model.getSelectedIndex()));
+                var index = filtered.isEmpty() ? 0 : filtered.getSourceIndex(max(0, model.getSelectedIndex()));
                 if (uploaded.addAll(index, dragged)) {
                     model.clearSelection();
                     model.selectRange(index, index + dragged.size());
