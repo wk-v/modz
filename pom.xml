@@ -131,7 +131,7 @@
                 <configuration>
                     <mainClass>ru.wkov.modz.ModzMain</mainClass>
                     <options>
-                        <option>-Xms2g</option>
+                        <option>-Xms4g</option>
                         <option>-Xmx8g</option>
                         <option>-Dprism.maxvram=4G</option>
                     </options>

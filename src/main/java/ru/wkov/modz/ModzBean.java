@@ -58,7 +58,7 @@ public interface ModzBean {
     }
 
     default int getTileSize() {
-        return 248;
+        return tileSize;
     }
 
     default ImageView getColorIcon() {

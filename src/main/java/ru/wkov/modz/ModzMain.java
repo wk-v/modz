@@ -11,13 +11,19 @@ import ru.wkov.modz.layout.ModzRoot;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+import static java.lang.Integer.max;
 import static java.util.logging.Level.*;
+import static java.util.stream.Collectors.toMap;
 import static javafx.scene.input.KeyCombination.NO_MATCH;
 import static javafx.stage.StageStyle.UNDECORATED;
+import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.math.NumberUtils.min;
 
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)
@@ -46,14 +52,27 @@ public class ModzMain extends Application {
     static Image blackIcon;
     static Image colorIcon;
     static Path rootPath;
+    static int tileSize;
 
     public static void main(String[] args) {
         try {
-            if (args.length == 0) {
-                logger.log(WARNING, "WebAPI key is not set. Mod details is not available.");
-            } else {
-                webApiKey = args[0];
+            var props = Map.<String, String>of();
+            if (args.length > 0) {
+                props = Arrays.stream(args)
+                        .map(arg -> split(arg, '='))
+                        .filter(arg -> arg.length == 2 && isNotBlank(arg[1]))
+                        .collect(toMap(arg -> arg[0], arg -> arg[1]));
             }
+
+            webApiKey = props.get("webApiKey");
+            if (isBlank(webApiKey)) {
+                logger.log(WARNING, "WebAPI key is not set. Mod details is not available.");
+                webApiKey = null;
+            }
+
+            tileSize = Integer.parseInt(props.getOrDefault("tileSize", "200"));
+            tileSize = min(max(tileSize, 100), 248);
+
             launch();
         } catch (Exception error) {
             logger.log(SEVERE, "Application crashed due to unexpected error:", error);
@@ -61,9 +80,8 @@ public class ModzMain extends Application {
     }
 
     public void start(Stage stage) throws Exception {
-        Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
-            logger.log(SEVERE, "Operation failed due to unexpected error:", error);
-        });
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) ->
+            logger.log(SEVERE, "Operation failed due to unexpected error:", error));
 
         mainStage = stage;
         mainColor = Color.web("#146478");
