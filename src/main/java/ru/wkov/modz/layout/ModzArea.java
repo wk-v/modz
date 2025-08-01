@@ -13,6 +13,7 @@ import ru.wkov.modz.ModzBean;
 import ru.wkov.modz.data.MapzItem;
 import ru.wkov.modz.data.ModzItem;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -29,7 +30,7 @@ import static ru.wkov.modz.ModzUtil.prop;
 /**
  * @author Vadim Kolesnikov (modz@wkov.ru)
  */
-public class ModzArea extends StackPane implements ModzBean {
+public class ModzArea extends StackPane implements ModzBean, Closeable {
 
     private static final ParallelTransition TRANSITION = new ParallelTransition();
 
@@ -133,7 +134,7 @@ public class ModzArea extends StackPane implements ModzBean {
             TRANSITION.playFromStart();
         }));
 
-        var o = prop(() -> setViewOrder(mod.getPriority() * 100 + map.getPriority()));
+        var o = prop(() -> setViewOrder(100 + mod.getPriority() * 100 + map.getPriority()));
         o.changed(null, null, null);
 
         map.priorityProperty().addListener(o);
@@ -179,7 +180,7 @@ public class ModzArea extends StackPane implements ModzBean {
             for (var tile : cache.get(n)) {
                 var progress = tile.progressProperty();
                 if (progress.get() < 1.0) {
-                    var listener = new InvalidationListener() {
+                    tile.listener = new InvalidationListener() {
 
                         boolean removed;
 
@@ -196,8 +197,8 @@ public class ModzArea extends StackPane implements ModzBean {
                         }
                     };
 
-                    progress.addListener(listener);
-                    listener.invalidated(null);
+                    progress.addListener(tile.listener);
+                    tile.listener.invalidated(null);
                 } else {
                     ctx.drawImage(tile, (tile.x - offsetX) * size, (tile.y - offsetY) * size);
                 }
@@ -205,15 +206,29 @@ public class ModzArea extends StackPane implements ModzBean {
         }
     }
 
-    private static class ModzTile extends Image {
+    @Override
+    public void close() {
+        getChildren().remove(canvas);
+        cache.forEach(layer -> layer.forEach(ModzTile::close));
+    }
 
-        int x, y;
+    private static class ModzTile extends Image implements ModzBean, Closeable {
+
+        final int x, y;
+
+        InvalidationListener listener;
 
         ModzTile(Path path, int size, int x, int y) {
             super("file:/" + path.toAbsolutePath(), size, size, false, false, true);
 
             this.x = x;
             this.y = y;
+        }
+
+        @Override
+        public void close() {
+            if (listener != null) progressProperty().removeListener(listener);
+            cancel();
         }
     }
 }

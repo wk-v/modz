@@ -12,9 +12,9 @@ import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.CLOSE_OUTLINE;
  */
 public class ModzIcon extends FontIcon implements ModzBean {
 
-    private Ikon[] codes;
+    protected Ikon[] codes;
 
-    private int state;
+    protected int state;
 
     public ModzIcon(Ikon... codes) {
         addStyleClasses("modz-icon");
@@ -49,7 +49,7 @@ public class ModzIcon extends FontIcon implements ModzBean {
         return setState(state + 1);
     }
 
-    public int refresh() {
+    protected int refresh() {
         setIconCode(isEmpty(codes) ? CLOSE_OUTLINE : codes[state]);
         return state;
     }

@@ -1,6 +1,9 @@
 package ru.wkov.modz.layout;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.ObservableList;
+import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
@@ -15,6 +18,7 @@ import ru.wkov.modz.data.ModzItem;
 import ru.wkov.modz.event.ModzScroll;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static java.lang.Double.max;
 import static java.lang.Double.min;
@@ -25,6 +29,7 @@ import static javafx.scene.input.ScrollEvent.SCROLL;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignB.BALLOT_OUTLINE;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.CONTENT_COPY;
 import static ru.wkov.modz.ModzUtil.clipboard;
+import static ru.wkov.modz.ModzUtil.prop;
 import static ru.wkov.modz.event.ModzReset.RESET;
 
 /**
@@ -32,23 +37,29 @@ import static ru.wkov.modz.event.ModzReset.RESET;
  */
 public class ModzView extends StackPane implements ModzBean {
 
-    private static final double DEFAULT_SCALE = 0.052098684819243665;
+    private static final double DEFAULT_SCALE = 0.07291326290219395;
 
-    private final ObservableList<ModzArea> areas;
+    private final ObservableList<Node> areas;
+
+    private final BooleanProperty overflow;
 
     private final ModzArea base;
 
+    private final ModzOver over;
+
     public ModzView() {
         base = new ModzArea(null, MapzItem.DEFAULT);
+        over = new ModzOver();
 
-        var view = new StackPane(base);
+        overflow = over.visibleProperty();
+
+        var view = new StackPane(over, base);
         view.setAlignment(TOP_LEFT);
-        view.setLayoutX(-base.getPrefWidth() / 2);
-        view.setLayoutY(-base.getPrefHeight() / 2);
+        view.setLayoutX(600 - base.getPrefWidth() / 2);
+        view.setLayoutY(400 - base.getPrefHeight() / 2);
         view.setManaged(false);
 
-        // noinspection all
-        areas = (ObservableList) view.getChildren();
+        areas = view.getChildren();
 
         var content = new StackPane(view);
         content.setScaleX(DEFAULT_SCALE);
@@ -107,7 +118,7 @@ public class ModzView extends StackPane implements ModzBean {
                 return;
             }
 
-            hint.refresh(view.screenToLocal(event.getScreenX(), event.getScreenY()), areas);
+            hint.refresh(view.screenToLocal(event.getScreenX(), event.getScreenY()), getAreas(2));
 
             var prevX = content.getTranslateX();
             var prevY = content.getTranslateY();
@@ -153,10 +164,10 @@ public class ModzView extends StackPane implements ModzBean {
                 }
             }
 
-            var scale = max(min(content.getScaleX() * (delta > 0.0 ? 1.1 : 1 / 1.1), 5.0), 0.05);
+            var scale = max(min(content.getScaleX() * (delta > 0.0 ? 1.1 : 1 / 1.1), 3.0), 0.07);
 
             if (event.isControlDown()) {
-                if (0.05 < scale && scale <= 5.0) {
+                if (0.07 < scale && scale <= 3.0) {
                     content.setScaleX(scale);
                     content.setScaleY(scale);
                 }
@@ -186,10 +197,12 @@ public class ModzView extends StackPane implements ModzBean {
         });
     }
 
+    public void setOverflow(boolean overflow) {
+        this.overflow.set(overflow);
+    }
+
     public void setLayer(int layer) {
-        for (var area : areas) {
-            area.setLayer(layer);
-        }
+        getAreas(1).forEach(area -> area.setLayer(layer));
     }
 
     public void add(ModzItem mod) {
@@ -198,6 +211,23 @@ public class ModzView extends StackPane implements ModzBean {
                 var area = new ModzArea(mod, map);
                 area.setLayer(base.getLayer());
                 areas.add(area);
+
+                var including = prop(() -> {
+                    if (mod.isIncluded() && map.isIncluded()) {
+                        map.tiles().forEach(over::add);
+                    } else {
+                        map.tiles().forEach(over::remove);
+                    }
+                });
+
+                area.setUserData(including);
+
+                if (mod.isIncluded() && map.isIncluded()) {
+                    map.tiles().forEach(over::add);
+                }
+
+                mod.includedProperty().addListener(including);
+                map.includedProperty().addListener(including);
             }
         }
     }
@@ -205,13 +235,27 @@ public class ModzView extends StackPane implements ModzBean {
     public void remove(ModzItem mod) {
         for (var map : mod.maps()) {
             if (!map.isEmpty()) {
-                for (int i = 0; i < areas.size(); i++) {
-                    if (areas.get(i).getMap().equals(map)) {
-                        areas.remove(i);
-                        break;
+                getAreas(2).removeIf(area -> {
+                    if (area.getMap().equals(map)) {
+                        @SuppressWarnings("unchecked")
+                        var including = (ChangeListener<Object>) area.getUserData();
+                        mod.includedProperty().removeListener(including);
+                        map.includedProperty().removeListener(including);
+                        area.close();
+                        return true;
                     }
+                    return false;
+                });
+
+                for (var tile : map.tiles()) {
+                    over.remove(tile);
                 }
             }
         }
+    }
+
+    @SuppressWarnings("all")
+    private List<ModzArea> getAreas(int from) {
+        return (List) areas.subList(from, areas.size());
     }
 }

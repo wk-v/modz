@@ -288,6 +288,12 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                 new ModzLvlMenuItem(8, relay, NUMERIC_7_BOX_MULTIPLE_OUTLINE)
         );
 
+        var solver = new Button() {{
+            var icon = new ModzIcon(CHECKBOX_BLANK_OUTLINE, CHECKBOX_BLANK_OFF_OUTLINE);
+            setOnAction(event -> view.setOverflow(icon.nextState() == 0));
+            setGraphic(icon);
+        }};
+
         var picker = new ModzPick();
 
         var saver = new Button("", new ModzIcon(DOWNLOAD));
@@ -302,12 +308,12 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                         new Separator(HORIZONTAL),
                         tmover, umover, dmover, bmover,
                         new Separator(HORIZONTAL),
-                        layer, picker,
+                        layer, solver, picker,
                         new Separator(HORIZONTAL),
                         saver);
 
         btns.getChildren().forEach(btn -> {
-            if (btn != loader && btn != picker && btn != layer) {
+            if (btn != loader && btn != picker && btn != layer && btn != solver) {
                 btn.setDisable(true);
             }
         });

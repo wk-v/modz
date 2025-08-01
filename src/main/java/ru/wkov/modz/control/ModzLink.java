@@ -1,13 +1,16 @@
 package ru.wkov.modz.control;
 
 import javafx.beans.value.ChangeListener;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.HBox;
 import org.apache.commons.lang3.StringUtils;
 import ru.wkov.modz.ModzBean;
 import ru.wkov.modz.ModzUtil;
 import ru.wkov.modz.data.ModzItem;
+import ru.wkov.modz.event.ModzScroll;
 
 import static java.net.URLEncoder.encode;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -37,15 +40,10 @@ public class ModzLink extends ListCell<ModzItem> implements ModzBean {
         icon.addEventFilter(MOUSE_PRESSED, event -> {
             if (event.getButton() == PRIMARY) {
                 var item = getItem();
-                if (item != null) {
-                    if (item.path() == null) {
-                        ModzUtil.explore(STEAM_OPENURL + STEAM_SEARCH_URI + encode(item.id(), UTF_8));
-                    } else {
-                        var included = !item.isIncluded();
-
-                        item.setIncluded(included);
-                        icon.setState(included);
-                    }
+                if (item != null && item.path() != null) {
+                    var included = !item.isIncluded();
+                    item.setIncluded(included);
+                    icon.setState(included);
                 }
             }
         });
@@ -60,6 +58,23 @@ public class ModzLink extends ListCell<ModzItem> implements ModzBean {
 
         addStyleClasses("modz-link");
         setGraphic(null);
+
+        var item1 = new MenuItem();
+        item1.setOnAction(event -> {
+            var item = getItem();
+            if (item.path() == null) {
+                ModzUtil.explore(STEAM_OPENURL + STEAM_SEARCH_URI + encode(item.id(), UTF_8));
+            } else {
+                getMainStage().fireEvent(new ModzScroll(item.getPriority(), false, false));
+            }
+        });
+
+        var menu = new ContextMenu(item1);
+        menu.setOnShowing(event -> {
+            item1.setText(getItem().path() == null ? "find in steam" : "scroll to mod");
+        });
+
+        setContextMenu(menu);
     }
 
     @Override

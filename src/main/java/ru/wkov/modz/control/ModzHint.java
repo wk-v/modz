@@ -118,17 +118,18 @@ public class ModzHint extends Tooltip implements ModzBean {
 
         var i = 0;
         for (var area : areas) {
-            var map = area.getMap();
-            if (map.tiles().contains(tile)) {
-                if (labels.size() == i) {
-                    labels.add(new Label());
+            var mod = area.getMod();
+            if (mod.isIncluded()) {
+                var map = area.getMap();
+                if (map.isIncluded() && map.tiles().contains(tile)) {
+                    if (labels.size() == i) {
+                        labels.add(new Label());
+                    }
+                    var label = labels.get(i++);
+                    label.setText(String.format("% 6d: %s - %s", mod.getPriority() + 1, mod.name(), map.name()));
+                    label.setTextFill(map.getColor());
+                    label.setUserData(mod.getPriority());
                 }
-                var label = labels.get(i++);
-                var mod = area.getMod();
-
-                label.setText(String.format("% 6d: %s - %s", mod.getPriority() + 1, mod.name(), map.name()));
-                label.setTextFill(map.getColor());
-                label.setUserData(mod.getPriority());
             }
         }
 
