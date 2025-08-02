@@ -100,7 +100,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
         menu.detailedProperty().addListener(prop(false, detailed -> {
             var item = getItem();
             if (item != null) {
-                item.setDetailed(detailed.intValue());
+                item.setDetailed(detailed);
             }
         }));
 
@@ -261,7 +261,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
         menu.setDetailed(item.getDetailed());
         more.setExpanded(item.isExpanded());
 
-        sort(menu.getPanes(), comparing(TitledPane::isVisible).reversed());
+        sort(menu.getPanes(), comparing(TitledPane::isVisible).reversed().thenComparing(TitledPane::getId));
 
         setGraphic(line);
     }

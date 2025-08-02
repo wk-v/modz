@@ -41,8 +41,8 @@ public record ModzItem(Path path,
                        BooleanProperty expandedProperty,
                        BooleanProperty includedProperty,
                        BooleanProperty selectedProperty,
-                       IntegerProperty detailedProperty,
                        IntegerProperty priorityProperty,
+                       StringProperty detailedProperty,
                        ObjectProperty<ModzCell> cellProperty,
                        ObjectProperty<ModzData> dataProperty,
                        ChangeListener<Boolean> listener) {
@@ -94,7 +94,7 @@ public record ModzItem(Path path,
                 new SimpleBooleanProperty(false),
                 new SimpleBooleanProperty(false),
                 new SimpleIntegerProperty(-1),
-                new SimpleIntegerProperty(-1),
+                new SimpleStringProperty(),
                 new SimpleObjectProperty<>(),
                 new SimpleObjectProperty<>(),
                 null
@@ -154,7 +154,7 @@ public record ModzItem(Path path,
                 new SimpleBooleanProperty(true),
                 new SimpleBooleanProperty(false),
                 new SimpleIntegerProperty(0),
-                new SimpleIntegerProperty(0),
+                new SimpleStringProperty(),
                 new SimpleObjectProperty<>(),
                 new SimpleObjectProperty<>(),
                 null
@@ -227,20 +227,20 @@ public record ModzItem(Path path,
         selectedProperty.set(selected);
     }
 
-    public int getDetailed() {
-        return detailedProperty.get();
-    }
-
-    public void setDetailed(int detailed) {
-        detailedProperty.set(detailed);
-    }
-
     public int getPriority() {
         return priorityProperty.get();
     }
 
     public void setPriority(int priority) {
         priorityProperty.set(priority);
+    }
+
+    public String getDetailed() {
+        return detailedProperty.get();
+    }
+
+    public void setDetailed(String detailed) {
+        detailedProperty.set(detailed);
     }
 
     public double getScore() {
@@ -307,7 +307,7 @@ public record ModzItem(Path path,
                 new SimpleBooleanProperty((Boolean) export[9]),
                 new SimpleBooleanProperty(false),
                 new SimpleIntegerProperty(0),
-                new SimpleIntegerProperty(0),
+                new SimpleStringProperty(),
                 new SimpleObjectProperty<>(),
                 new SimpleObjectProperty<>(),
                 null
