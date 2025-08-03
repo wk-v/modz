@@ -313,6 +313,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                         saver);
 
         btns.getChildren().forEach(btn -> {
+            btn.setFocusTraversable(false);
             if (btn != loader && btn != picker && btn != layer && btn != solver) {
                 btn.setDisable(true);
             }

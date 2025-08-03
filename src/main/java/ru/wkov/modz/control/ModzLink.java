@@ -65,7 +65,7 @@ public class ModzLink extends ListCell<ModzItem> implements ModzBean {
             if (item.path() == null) {
                 ModzUtil.explore(STEAM_OPENURL + STEAM_SEARCH_URI + encode(item.id(), UTF_8));
             } else {
-                getMainStage().fireEvent(new ModzScroll(item.getPriority(), false, false));
+                getMainStage().fireEvent(new ModzScroll(item.getPriority(), true, false));
             }
         });
 
