@@ -18,11 +18,9 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import static java.lang.Math.round;
@@ -99,6 +97,15 @@ public class ModzUtil {
 
     public static <T extends Node> T find(PickResult result, Class<T> type) {
         return find(result.getIntersectedNode(), type);
+    }
+
+    public static <T> Comparator<T> sorting(BiPredicate<T, T> predicate, Comparator<T> comparator) {
+        return (o1, o2) -> {
+            if (predicate.test(o1, o2)) {
+                return comparator.compare(o1, o2);
+            }
+            return 0;
+        };
     }
 
     public static <T> ChangeListener<T> prop(Runnable runnable) {
@@ -211,7 +218,7 @@ public class ModzUtil {
             });
         });
 
-        return "Mods=" + join(";", mods) + "\nMap=" + join(";", maps) + "\nWorkshopItems=" + join(";", work) + "\n";
+        return "Mods=" + join(";", mods) + "\n\nMap=" + join(";", maps) + ";Muldraugh, KY" + "\n\nWorkshopItems=" + join(";", work) + "\n";
     }
 
     public static String toTXT(Iterable<ModzItem> items) {

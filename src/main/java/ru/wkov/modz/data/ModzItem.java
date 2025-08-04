@@ -119,7 +119,7 @@ public record ModzItem(Path path,
         if (Files.exists(temp)) {
             try (var stream = Files.list(temp)) {
                 var priority = new AtomicInteger(0);
-                stream.map(MapzItem::valueOf).forEach(map -> {
+                stream.filter(Files::isDirectory).map(MapzItem::valueOf).forEach(map -> {
                     maps.add(priority.get(), map);
                     map.setPriority(priority.getAndIncrement());
                 });

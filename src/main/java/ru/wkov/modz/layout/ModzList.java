@@ -5,6 +5,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.layout.HBox;
@@ -12,8 +13,8 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.robot.Robot;
+import javafx.stage.Stage;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.controlsfx.control.textfield.TextFields;
 import org.kordamp.ikonli.Ikon;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -31,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import static impl.org.controlsfx.autocompletion.SuggestionProvider.create;
@@ -42,18 +44,17 @@ import static java.util.Comparator.comparing;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.WARNING;
 import static javafx.geometry.Orientation.HORIZONTAL;
-import static javafx.geometry.Side.LEFT;
 import static javafx.scene.Cursor.HAND;
 import static javafx.scene.control.SelectionMode.MULTIPLE;
 import static javafx.scene.input.KeyEvent.KEY_PRESSED;
 import static javafx.scene.input.MouseEvent.*;
 import static javafx.scene.layout.Priority.ALWAYS;
+import static javafx.stage.StageStyle.UNDECORATED;
 import static javafx.stage.WindowEvent.WINDOW_HIDING;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignC.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignD.DOWNLOAD;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FILTER_CHECK_OUTLINE;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FOLDER_OPEN_OUTLINE;
-import static org.kordamp.ikonli.materialdesign2.MaterialDesignM.MAGNIFY;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignN.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignS.*;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignT.TRASH_CAN_OUTLINE;
@@ -111,14 +112,6 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         model = list.getSelectionModel();
         model.setSelectionMode(MULTIPLE);
 
-        var hints = create(List.<String>of());
-        hints.setShowAllIfEmpty(true);
-
-        var search = new TextField();
-        search.setPrefWidth(248.0);
-
-        TextFields.bindAutoCompletion(search, hints);
-
         uploaded = FXCollections.observableArrayList(item ->
                 ArrayUtils.toArray(item.disabledProperty(), item.includedProperty(), item.tags()));
 
@@ -126,10 +119,6 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             for (int i = 0; i < items.size(); i++) {
                 items.get(i).setPriority(i);
             }
-
-            hints.clearSuggestions();
-            hints.addPossibleSuggestions(items.stream().map(ModzItem::name).toList());
-
             changed.set(true);
         }));
 
@@ -161,19 +150,12 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
         var checks = new HashSet<String>();
         var filtering = (Runnable) () -> filtered.setPredicate(item -> {
-            var used = StringUtils.containsIgnoreCase(item.toString(), search.getText()) &&
-                    (checks.isEmpty() || item.tags().containsAll(checks));
-
+            var used = checks.isEmpty() || item.tags().containsAll(checks);
             if (item.isSelected() && !used) {
                 model.clearSelection(filtered.indexOf(item));
             }
-
             return used;
         });
-
-        var finder = new MenuButton("", new FontIcon(MAGNIFY), new CustomMenuItem(search, false));
-        finder.getStyleClass().add("modz-search");
-        finder.setPopupSide(LEFT);
 
         var filter = new MenuButton("", new FontIcon(FILTER_CHECK_OUTLINE));
         filter.getItems().addAll(ModzType.createAll(18).stream().map(type -> {
@@ -192,18 +174,23 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             return item;
         }).toList());
 
-        search.textProperty()
-                .addListener(ModzUtil.prop(filtering));
+        var predicate = new BiPredicate<ModzItem, ModzItem>() {
+
+            @Override
+            public boolean test(ModzItem item1, ModzItem item2) {
+                return selected.isEmpty() || item1.isSelected() && item2.isSelected();
+            }
+        };
 
         var sorter = new MenuButton("", new FontIcon(SORT),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::name, CASE_INSENSITIVE_ORDER)), /*      */ SORT_ALPHABETICAL_ASCENDING),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::name, CASE_INSENSITIVE_ORDER).reversed()), SORT_ALPHABETICAL_DESCENDING),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isIncluded)), /*                        */ SORT_BOOL_ASCENDING_VARIANT),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isIncluded).reversed()), /*             */ SORT_BOOL_DESCENDING_VARIANT),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isDisabled)), /*                        */ SORT_BOOL_ASCENDING),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::isDisabled).reversed()), /*             */ SORT_BOOL_DESCENDING),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::getScore)), /*                          */ SORT_ASCENDING),
-                new ModzIconMenuItem(state -> uploaded.sort(comparing(ModzItem::getScore).reversed()), /*               */ SORT_DESCENDING));
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::name, CASE_INSENSITIVE_ORDER))), /*      */ SORT_ALPHABETICAL_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::name, CASE_INSENSITIVE_ORDER).reversed())), SORT_ALPHABETICAL_DESCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::isIncluded))), /*                        */ SORT_BOOL_ASCENDING_VARIANT),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::isIncluded).reversed())), /*             */ SORT_BOOL_DESCENDING_VARIANT),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::isDisabled))), /*                        */ SORT_BOOL_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::isDisabled).reversed())), /*             */ SORT_BOOL_DESCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getScore))), /*                          */ SORT_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getScore).reversed())), /*               */ SORT_DESCENDING));
 
         var folder = new Button("", new ModzIcon(FOLDER_OPEN_OUTLINE));
         folder.setOnAction(event -> explore(model.getSelectedItem().path()));
@@ -226,8 +213,8 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             list.scrollTo(0);
         });
 
-        var umover = new Button("", new FontIcon(CHEVRON_UP));
-        umover.setOnAction(event -> {
+        var umover = new ModzHold(new FontIcon(CHEVRON_UP));
+        umover.setOnHold(() -> {
             var i1 = model.getSelectedIndex();
             if (i1 > 0) {
                 var i2 = i1 - 1;
@@ -239,8 +226,8 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             }
         });
 
-        var dmover = new Button("", new FontIcon(CHEVRON_DOWN));
-        dmover.setOnAction(event -> {
+        var dmover = new ModzHold(new FontIcon(CHEVRON_DOWN));
+        dmover.setOnHold(() -> {
             var i1 = model.getSelectedIndex();
             if (i1 < filtered.size() - 1) {
                 var i2 = i1 + 1;
@@ -302,7 +289,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         btns.getChildren()
                 .addAll(loader, remover,
                         new Separator(HORIZONTAL),
-                        finder, filter, sorter,
+                        filter, sorter,
                         new Separator(HORIZONTAL),
                         folder, steam, web,
                         new Separator(HORIZONTAL),
@@ -322,7 +309,6 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         uploaded.addListener(list(items -> {
             var disabled = items.isEmpty();
 
-            finder.setDisable(disabled);
             filter.setDisable(disabled);
             sorter.setDisable(disabled);
             saver.setDisable(disabled);
@@ -407,6 +393,20 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         var robot = new Robot();
         var drag = new ModzDrag();
 
+        view.setCellFactory(unused -> {
+            var cell = new ModzCell();
+
+            cell.layoutYProperty().addListener(ModzUtil.prop(() -> {
+                if (cell.getItem() != null && drag.isShowing()) {
+                    if (cell.contains(cell.screenToLocal(robot.getMousePosition()))) {
+                        model.clearAndSelect(cell.getIndex());
+                    }
+                }
+            }));
+
+            return cell;
+        });
+
         view.addEventFilter(DRAG_DETECTED, event -> {
             if (event.isPrimaryButtonDown() && event.isAltDown()) {
                 var items = clearSelection();
@@ -415,7 +415,6 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                 drag.drag(items);
             }
         });
-
 
         view.addEventFilter(MOUSE_DRAGGED, event -> {
             if (drag.isShowing()) {
@@ -429,6 +428,41 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                 drag.setY(robot.getMouseY());
             }
         });
+
+        var hints = create(List.<ModzItem>of());
+        hints.setShowAllIfEmpty(true);
+
+        filtered.addListener(ModzUtil.list(items -> {
+            hints.clearSuggestions();
+            // noinspection unchecked
+            hints.addPossibleSuggestions((List<ModzItem>) items);
+        }));
+
+        var search = new TextField();
+        search.setPrefWidth(600.0);
+
+        var scene = new Scene(new StackPane(search));
+        scene.getStylesheets().add("style.css");
+
+        var find = new Stage();
+        find.setAlwaysOnTop(true);
+        find.initOwner(getMainStage());
+        find.initStyle(UNDECORATED);
+        find.setScene(scene);
+
+        var binding = TextFields.bindAutoCompletion(search, hints);
+        binding.getAutoCompletionPopup().setPrefWidth(search.getPrefWidth());
+        binding.setOnAutoCompleted(event -> {
+            var item = event.getCompletion();
+
+            model.clearSelection();
+            model.select(item);
+
+            view.scrollTo(item);
+            find.hide();
+        });
+
+        getMainStage().addEventFilter(MOUSE_PRESSED, event -> find.hide());
 
         getMainStage().addEventFilter(MOUSE_RELEASED, event -> {
             if (drag.isShowing()) {
@@ -444,20 +478,6 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             }
         });
 
-        view.setCellFactory(unused -> {
-            var cell = new ModzCell();
-
-            cell.layoutYProperty().addListener(ModzUtil.prop(() -> {
-                if (cell.getItem() != null && drag.isShowing()) {
-                    if (cell.contains(cell.screenToLocal(robot.getMousePosition()))) {
-                        model.clearAndSelect(cell.getIndex());
-                    }
-                }
-            }));
-
-            return cell;
-        });
-
         getMainStage().addEventFilter(KEY_PRESSED, event -> {
             switch (event.getCode()) {
                 case DELETE -> removeSelected();
@@ -466,6 +486,10 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                     if (event.isControlDown()) {
                         clipboard(toINI(selected));
                     }
+                }
+                case F -> {
+                    find.show();
+                    binding.setUserInput("");
                 }
             }
         });
