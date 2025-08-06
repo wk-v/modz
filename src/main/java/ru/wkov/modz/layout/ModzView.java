@@ -239,17 +239,20 @@ public class ModzView extends StackPane implements ModzBean {
                     if (area.getMap().equals(map)) {
                         @SuppressWarnings("unchecked")
                         var including = (ChangeListener<Object>) area.getUserData();
+                        area.setUserData(null);
+
                         mod.includedProperty().removeListener(including);
                         map.includedProperty().removeListener(including);
+
+                        if (mod.isIncluded() && map.isIncluded()) {
+                            map.tiles().forEach(over::remove);
+                        }
+
                         area.close();
                         return true;
                     }
                     return false;
                 });
-
-                for (var tile : map.tiles()) {
-                    over.remove(tile);
-                }
             }
         }
     }

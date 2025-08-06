@@ -234,6 +234,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
                             Workshop ID: %s
                             Mod ID: %s
                             %s
+                            Author: %s
                             Created: %s
                             Updated: %s
                             
@@ -244,6 +245,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
                     item.workshop(),
                     item.id(),
                     coords,
+                    data.getCreatedBy(),
                     leftPad(data.getCreatedAt().format(DTF), 21),
                     leftPad(data.getUpdatedAt().format(DTF), 21),
                     data.getSubscriptions(),

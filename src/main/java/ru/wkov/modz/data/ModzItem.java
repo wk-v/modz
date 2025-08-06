@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -46,6 +47,8 @@ public record ModzItem(Path path,
                        ObjectProperty<ModzCell> cellProperty,
                        ObjectProperty<ModzData> dataProperty,
                        ChangeListener<Boolean> listener) {
+
+    private static final ZonedDateTime DEFAULT_ZDT = ZonedDateTime.now();
 
     public ModzItem {
         listener = prop(() -> disabledProperty.set(reqs.values().stream()
@@ -243,12 +246,28 @@ public record ModzItem(Path path,
         detailedProperty.set(detailed);
     }
 
+    public String getAuthor() {
+        var data = dataProperty.get();
+        if (data == null) {
+            return "";
+        }
+        return data.getCreatedBy();
+    }
+
     public double getScore() {
         var data = dataProperty.get();
         if (data == null) {
             return 0.0;
         }
         return data.getRate().getScore();
+    }
+
+    public ZonedDateTime getUpdated() {
+        var data = dataProperty.get();
+        if (data == null) {
+            return DEFAULT_ZDT;
+        }
+        return data.getUpdatedAt();
     }
 
     @Override

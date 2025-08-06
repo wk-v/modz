@@ -225,8 +225,10 @@ public class ModzLoad extends Button implements ModzBean {
                                 var latch = new CountDownLatch(previews.size());
                                 var imgs = new LinkedList<String>();
                                 for (var preview : previews) {
-                                    if (isNoneBlank(preview.getName(), preview.getUrl())) {
-                                        var path = getRootPath().resolve(Path.of("imgs", data.getWorkshop(), preview.getName()));
+                                    var name = preview.getName();
+                                    if (isNoneBlank(name, preview.getUrl())) {
+                                        name = preview.getName().replaceAll("\\W", "W");
+                                        var path = getRootPath().resolve(Path.of("imgs", data.getWorkshop(), name));
                                         imgs.add("file:" + path.toAbsolutePath());
                                         if (!Files.exists(path)) {
                                             new Thread(() -> {

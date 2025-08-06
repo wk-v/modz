@@ -178,7 +178,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
             @Override
             public boolean test(ModzItem item1, ModzItem item2) {
-                return selected.isEmpty() || item1.isSelected() && item2.isSelected();
+                return selected.size() < 2 || item1.isSelected() && item2.isSelected();
             }
         };
 
@@ -189,8 +189,13 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
                 new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::isIncluded).reversed())), /*             */ SORT_BOOL_DESCENDING_VARIANT),
                 new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::isDisabled))), /*                        */ SORT_BOOL_ASCENDING),
                 new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::isDisabled).reversed())), /*             */ SORT_BOOL_DESCENDING),
-                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getScore))), /*                          */ SORT_ASCENDING),
-                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getScore).reversed())), /*               */ SORT_DESCENDING));
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getScore))), /*                          */ SORT_NUMERIC_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getScore).reversed())), /*               */ SORT_NUMERIC_DESCENDING),
+
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getAuthor))), /*                         */ SORT_ASCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getAuthor).reversed())), /*              */ SORT_DESCENDING),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getUpdated))), /*                        */ SORT_CLOCK_ASCENDING_OUTLINE),
+                new ModzIconMenuItem(state -> uploaded.sort(sorting(predicate, comparing(ModzItem::getUpdated).reversed())), /*             */ SORT_CLOCK_DESCENDING_OUTLINE));
 
         var folder = new Button("", new ModzIcon(FOLDER_OPEN_OUTLINE));
         folder.setOnAction(event -> explore(model.getSelectedItem().path()));

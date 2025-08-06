@@ -19,6 +19,7 @@ import static com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITI
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.exists;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toSet;
 
 /**
@@ -118,7 +119,16 @@ public class ModzHttp implements ModzBean {
                 throw new IllegalStateException(response.statusCode() + "\n" + response.body());
             }
 
-            cache(mapper.readValue(response.body(), Body.class).getResponse().getDetails());
+            var details = mapper.readValue(response.body(), Body.class).getResponse().getDetails();
+            var grouped = details.stream().collect(groupingBy(ModzData::getCreatedBy));
+
+            for (var author : getAuthors(grouped.keySet())) {
+                for (var data : grouped.get(author.getId())) {
+                    data.setCreatedBy(author.getName());
+                }
+            }
+
+            cache(details);
         }
 
         return ids.stream().map(cache::get).filter(Objects::nonNull).toList();
