@@ -16,6 +16,7 @@ import java.util.*;
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 import static com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES;
+import static java.lang.Integer.min;
 import static java.net.http.HttpResponse.BodyHandlers.ofString;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.exists;
@@ -58,7 +59,7 @@ public class ModzHttp implements ModzBean {
     }
 
     @SneakyThrows
-    public Collection<ModzUser> getAuthors(Collection<String> ids) { // TODO
+    public Collection<ModzUser> getAuthors(Collection<String> ids) {
         var uri = ModzUrls
                 .api("https://api.steampowered.com/IPlayerService/GetPlayerLinkDetails/v1/")
                 .add("steamIds", ids)
@@ -120,11 +121,14 @@ public class ModzHttp implements ModzBean {
             }
 
             var details = mapper.readValue(response.body(), Body.class).getResponse().getDetails();
-            var grouped = details.stream().collect(groupingBy(ModzData::getCreatedBy));
 
-            for (var author : getAuthors(grouped.keySet())) {
-                for (var data : grouped.get(author.getId())) {
-                    data.setCreatedBy(author.getName());
+            var grouped = details.stream().collect(groupingBy(ModzData::getCreatedBy));
+            var keys = new ArrayList<>(grouped.keySet());
+            for (int i = 0; i < keys.size(); ) {
+                for (var author : getAuthors(keys.subList(i, min(i += 50, keys.size())))) {
+                    for (var data : grouped.get(author.getId())) {
+                        data.setCreatedBy(author.getName());
+                    }
                 }
             }
 

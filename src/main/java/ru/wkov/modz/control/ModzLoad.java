@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
+import static java.lang.Character.toUpperCase;
 import static java.lang.Integer.min;
 import static java.nio.file.FileSystems.getDefault;
 import static java.nio.file.FileVisitResult.*;
@@ -33,6 +34,7 @@ import static javafx.scene.control.Alert.AlertType.NONE;
 import static javafx.scene.control.ButtonType.*;
 import static javafx.scene.control.ContentDisplay.RIGHT;
 import static javafx.scene.control.OverrunStyle.CLIP;
+import static org.apache.commons.lang3.CharUtils.isAsciiPrintable;
 import static org.apache.commons.lang3.StringUtils.abbreviateMiddle;
 import static org.apache.commons.lang3.StringUtils.isNoneBlank;
 import static org.kordamp.ikonli.materialdesign2.MaterialDesignF.FILE_DOCUMENT_PLUS_OUTLINE;
@@ -227,7 +229,17 @@ public class ModzLoad extends Button implements ModzBean {
                                 for (var preview : previews) {
                                     var name = preview.getName();
                                     if (isNoneBlank(name, preview.getUrl())) {
-                                        name = preview.getName().replaceAll("\\W", "W");
+                                        var builder = new StringBuilder();
+                                        for (var n = 0; n < name.length(); n++) {
+                                            var ch = name.charAt(n);
+                                            if (isAsciiPrintable(ch)) {
+                                                builder.append(toUpperCase(ch));
+                                            } else {
+                                                builder.append(name.codePointAt(n));
+                                            }
+                                        }
+                                        name = builder.toString();
+
                                         var path = getRootPath().resolve(Path.of("imgs", data.getWorkshop(), name));
                                         imgs.add("file:" + path.toAbsolutePath());
                                         if (!Files.exists(path)) {
