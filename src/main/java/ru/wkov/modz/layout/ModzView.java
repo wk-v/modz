@@ -233,9 +233,9 @@ public class ModzView extends StackPane implements ModzBean {
     }
 
     public void remove(ModzItem mod) {
-        for (var map : mod.maps()) {
-            if (!map.isEmpty()) {
-                getAreas(2).removeIf(area -> {
+        getAreas(2).removeIf(area -> {
+            if (area.getMod().equals(mod)) {
+                for (var map : mod.maps()) {
                     if (area.getMap().equals(map)) {
                         @SuppressWarnings("unchecked")
                         var including = (ChangeListener<Object>) area.getUserData();
@@ -251,10 +251,10 @@ public class ModzView extends StackPane implements ModzBean {
                         area.close();
                         return true;
                     }
-                    return false;
-                });
+                }
             }
-        }
+            return false;
+        });
     }
 
     @SuppressWarnings("all")
