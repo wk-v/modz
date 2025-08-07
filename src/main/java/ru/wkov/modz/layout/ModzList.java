@@ -250,7 +250,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             uploaded.removeAll(items);
             uploaded.addAll(items);
             model.selectRange(filtered.size() - items.size(), filtered.size());
-            list.scrollTo(filtered.size() - 1);
+            list.scrollTo(uploaded.size());
         });
 
         var icon = new ModzIcon(
@@ -603,15 +603,17 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             var last = flow.getLastVisibleCell().getIndex();
 
             if (steps < 0) {
-                if (first + 2 > index) {
-                    index = first + steps;
+                var delta = 2 + first - index;
+                if (0 <= delta) {
+                    index = first + steps - delta;
                     list.scrollTo(index);
                     list.scrollTo(index);
                 }
             } else if (steps > 0) {
-                if (last < index + 3) {
+                var delta = 3 + index - last;
+                if (0 <= delta) {
                     if (filtered.size() - index > 3) {
-                        index = first + steps;
+                        index = first + steps + delta;
                     } else {
                         index = last;
                     }
