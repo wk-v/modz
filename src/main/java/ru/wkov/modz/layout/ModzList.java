@@ -612,7 +612,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             } else if (steps > 0) {
                 var delta = 3 + index - last;
                 if (0 <= delta) {
-                    if (filtered.size() - index > 3) {
+                    if (filtered.size() - index > 4) {
                         index = first + steps + delta;
                     } else {
                         index = last;
