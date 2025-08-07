@@ -204,14 +204,15 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
             for (var map : item.maps()) {
                 coords.append("\nMap Folder: ").append(map.id());
                 if (!map.isEmpty()) {
-                    coords.append(" [ ");
+                    coords.append(' ').append('[');
                     for (var tile : map.tiles()) {
                         coords.append(tile.x()).append('x').append(tile.y()).append(' ');
                     }
-                    coords.append("]");
+                    coords.deleteCharAt(coords.length() - 1);
+                    coords.append(']');
                 }
             }
-            coords.append("\n");
+            coords.append('\n');
         }
 
         var data = item.dataProperty().get();
