@@ -22,8 +22,7 @@ import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
 import static javafx.collections.FXCollections.*;
-import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
-import static org.apache.commons.lang3.StringUtils.rightPad;
+import static org.apache.commons.lang3.StringUtils.*;
 import static ru.wkov.modz.ModzUtil.*;
 
 /**
@@ -284,14 +283,12 @@ public record ModzItem(Path path,
 
     @Override
     public String toString() {
-        var string = name + " <" + id + ">";
-
         var data = dataProperty.get();
         if (data == null) {
-            return string;
+            return name;
         }
 
-        return rightPad(string, 180) + data.getCreatedBy();
+        return rightPad(abbreviate(name, 80), 81) + data.getCreatedBy();
     }
 
     public Object[] export() {

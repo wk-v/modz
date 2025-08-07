@@ -93,7 +93,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
             event.consume();
         });
 
-        page = new ModzPage(300.0, 300.0);
+        page = new ModzPage(480.0, 480.0);
         rate = new ModzRate();
 
         menu = new ModzMenu();
@@ -204,7 +204,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
             for (var map : item.maps()) {
                 coords.append("\nMap Folder: ").append(map.id());
                 if (!map.isEmpty()) {
-                    coords.append("\n[ ");
+                    coords.append(" [ ");
                     for (var tile : map.tiles()) {
                         coords.append(tile.x()).append('x').append(tile.y()).append(' ');
                     }
@@ -221,6 +221,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
                             Workshop ID: %s
                             Mod ID: %s
                             %s
+                            
                             %s
                             """,
                     item.workshop(),
@@ -234,7 +235,6 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
                             Workshop ID: %s
                             Mod ID: %s
                             %s
-                            Author: %s
                             Created: %s
                             Updated: %s
                             
@@ -245,7 +245,6 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
                     item.workshop(),
                     item.id(),
                     coords,
-                    data.getCreatedBy(),
                     leftPad(data.getCreatedAt().format(DTF), 21),
                     leftPad(data.getUpdatedAt().format(DTF), 21),
                     data.getSubscriptions(),
