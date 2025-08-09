@@ -91,7 +91,7 @@ public class ModzMain extends Application {
         colorIcon = new Image("color.png", false);
         rootPath = Path.of("modz");
 
-        var scene = new Scene(new ModzRoot(), 800, 600);
+        var scene = new Scene(new ModzRoot(), 1000, 800);
         scene.getStylesheets().add("style.css");
 
         var bounds = Screen.getPrimary().getVisualBounds();

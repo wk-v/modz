@@ -1,5 +1,6 @@
 package ru.wkov.modz.layout;
 
+import impl.org.controlsfx.skin.AutoCompletePopup;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -444,7 +445,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         }));
 
         var search = new TextField();
-        search.setPrefWidth(600.0);
+        search.setPrefWidth(980.0);
 
         var scene = new Scene(new StackPane(search));
         scene.getStylesheets().add("style.css");
@@ -456,7 +457,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         find.setScene(scene);
 
         var binding = TextFields.bindAutoCompletion(search, hints);
-        binding.getAutoCompletionPopup().setPrefWidth(search.getPrefWidth());
+        binding.setVisibleRowCount(28);
         binding.setOnAutoCompleted(event -> {
             var item = event.getCompletion();
 
@@ -465,7 +466,14 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
             view.scrollTo(item);
             find.hide();
+
+            search.setText(null);
         });
+
+        var popup = binding.getAutoCompletionPopup();
+        popup.setPrefWidth(search.getPrefWidth());
+        popup.setAutoHide(false);
+        popup.setAutoFix(false);
 
         getMainStage().addEventFilter(MOUSE_PRESSED, event -> find.hide());
 
