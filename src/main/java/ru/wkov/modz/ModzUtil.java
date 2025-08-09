@@ -218,7 +218,8 @@ public class ModzUtil {
             });
         });
 
-        return "Mods=" + join(";", mods) + "\n\nMap=" + join(";", maps) + ";Muldraugh, KY" + "\n\nWorkshopItems=" + join(";", work) + "\n";
+        return "Mods=" + join(";", mods) + "\n\nMap=" + join(";", maps) + (maps.isEmpty() ? "" : ";") +
+                "Muldraugh, KY" + "\n\nWorkshopItems=" + join(";", work) + "\n";
     }
 
     public static String toTXT(Iterable<ModzItem> items) {
