@@ -1,6 +1,6 @@
 package ru.wkov.modz.layout;
 
-import impl.org.controlsfx.skin.AutoCompletePopup;
+import impl.org.controlsfx.autocompletion.AutoCompletionTextFieldBinding;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -16,7 +16,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.robot.Robot;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.ArrayUtils;
-import org.controlsfx.control.textfield.TextFields;
 import org.kordamp.ikonli.Ikon;
 import org.kordamp.ikonli.javafx.FontIcon;
 import ru.wkov.modz.ModzBean;
@@ -47,6 +46,7 @@ import static java.util.logging.Level.WARNING;
 import static javafx.geometry.Orientation.HORIZONTAL;
 import static javafx.scene.Cursor.HAND;
 import static javafx.scene.control.SelectionMode.MULTIPLE;
+import static javafx.scene.input.KeyCode.ESCAPE;
 import static javafx.scene.input.KeyEvent.KEY_PRESSED;
 import static javafx.scene.input.MouseEvent.*;
 import static javafx.scene.layout.Priority.ALWAYS;
@@ -455,8 +455,14 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
         find.initOwner(getMainStage());
         find.initStyle(UNDECORATED);
         find.setScene(scene);
+        find.setOnHidden(event -> search.setText(null));
+        find.addEventFilter(KEY_PRESSED, event -> {
+            if (event.getCode() == ESCAPE) {
+                find.hide();
+            }
+        });
 
-        var binding = TextFields.bindAutoCompletion(search, hints);
+        var binding = new AutoCompletionTextFieldBinding<>(search, hints);
         binding.setVisibleRowCount(28);
         binding.setOnAutoCompleted(event -> {
             var item = event.getCompletion();
@@ -466,8 +472,6 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
             view.scrollTo(item);
             find.hide();
-
-            search.setText(null);
         });
 
         var popup = binding.getAutoCompletionPopup();

@@ -373,13 +373,15 @@
 
 .modz-cell .modz-rate,
 .modz-cell .modz-page,
-.modz-cell .modz-mapz .modz-icon {
+.modz-cell .modz-mapz .modz-icon,
+.modz-cell .modz-cell-tags {
     -fx-opacity: 0.28;
 }
 
 .modz-cell:checked .modz-rate,
 .modz-cell:checked .modz-page,
-.modz-cell:checked .modz-mapz .modz-icon {
+.modz-cell:checked .modz-mapz .modz-icon,
+.modz-cell:checked .modz-cell-tags {
     -fx-opacity: 1.0;
 }
 
