@@ -15,6 +15,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.robot.Robot;
 import javafx.stage.Stage;
+import javafx.util.StringConverter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.kordamp.ikonli.Ikon;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -36,7 +37,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import static impl.org.controlsfx.autocompletion.SuggestionProvider.create;
-import static java.lang.Math.max;
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -435,7 +435,7 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             }
         });
 
-        var hints = create(List.<ModzItem>of());
+        var hints = create(item -> toView(item.getPriority()) + ": " + item, List.<ModzItem>of());
         hints.setShowAllIfEmpty(true);
 
         filtered.addListener(ModzUtil.list(items -> {
@@ -462,7 +462,18 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
             }
         });
 
-        var binding = new AutoCompletionTextFieldBinding<>(search, hints);
+        var binding = new AutoCompletionTextFieldBinding<>(search, hints, new StringConverter<>() {
+
+            @Override
+            public String toString(ModzItem item) {
+                return (item.isIncluded() ? "[x] " : "[ ] ") + toView(item.getPriority()) + ": " + item;
+            }
+
+            @Override
+            public ModzItem fromString(String string) {
+                throw new UnsupportedOperationException();
+            }
+        });
         binding.setVisibleRowCount(28);
         binding.setOnAutoCompleted(event -> {
             var item = event.getCompletion();
@@ -483,13 +494,21 @@ public class ModzList extends StackPane implements Consumer<Collection<ModzItem>
 
         getMainStage().addEventFilter(MOUSE_RELEASED, event -> {
             if (drag.isShowing()) {
-                var index = filtered.isEmpty() ? 0 : filtered.getSourceIndex(max(0, model.getSelectedIndex()));
+                var fi = model.getSelectedIndex();
+                var ui = 0;
+
+                if (filtered.isEmpty() || fi < 0) {
+                    fi = 0;
+                } else {
+                    ui = filtered.getSourceIndex(fi);
+                }
+
                 var dropped = drag.drop();
-                if (uploaded.addAll(index, dropped)) {
+                if (uploaded.addAll(ui, dropped)) {
                     model.clearSelection();
-                    model.selectRange(index, index + dropped.size());
-                    if (index == 0) {
-                        view.scrollTo(index);
+                    model.selectRange(fi, fi + dropped.size());
+                    if (fi == 0) {
+                        view.scrollTo(0);
                     }
                 }
             }

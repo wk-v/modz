@@ -24,13 +24,13 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import static java.lang.Math.round;
-import static java.lang.String.format;
-import static java.lang.String.join;
+import static java.lang.String.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.ThreadLocalRandom.current;
 import static javafx.css.PseudoClass.getPseudoClass;
 import static javafx.scene.input.Clipboard.getSystemClipboard;
 import static javafx.scene.input.DataFormat.PLAIN_TEXT;
+import static org.apache.commons.lang3.StringUtils.leftPad;
 import static org.apache.commons.lang3.StringUtils.wrap;
 
 /**
@@ -192,6 +192,10 @@ public class ModzUtil {
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException(ex);
         }
+    }
+
+    public static String toView(int priority) {
+        return leftPad(valueOf((priority + 1)), 5);
     }
 
     public static String toINI(Iterable<ModzItem> items) {

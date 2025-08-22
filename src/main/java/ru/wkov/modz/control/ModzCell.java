@@ -165,7 +165,7 @@ public class ModzCell extends ListCell<ModzItem> implements ModzBean {
     }
 
     public void setNumber(int number) {
-        numb.setText(leftPad((number + 1) + ":", 6));
+        numb.setText(toView(number) + ':');
     }
 
     public void setImgs(List<? extends String> urls) {
