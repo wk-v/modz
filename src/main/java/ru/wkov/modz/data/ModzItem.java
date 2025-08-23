@@ -8,6 +8,7 @@ import javafx.collections.ObservableSet;
 import ru.wkov.modz.control.ModzCell;
 import ru.wkov.modz.http.ModzData;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -20,9 +21,11 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import static java.io.File.separatorChar;
 import static java.util.stream.Collectors.toMap;
 import static javafx.collections.FXCollections.*;
 import static org.apache.commons.lang3.StringUtils.*;
+import static ru.wkov.modz.ModzMain.rootPath;
 import static ru.wkov.modz.ModzUtil.*;
 
 /**
@@ -315,14 +318,22 @@ public record ModzItem(Path path,
         var maps = Arrays.stream((Object[]) export[7]).map(MapzItem::valueOf).toList();
         var reqs = Arrays.stream((String[]) export[8]).collect(toMap(Function.identity(), ModzItem::valueOf));
 
+        var workshop = export[3].toString();
+
         var item = new ModzItem(
                 Path.of(export[0].toString()),
                 export[1].toString(),
                 export[2].toString(),
-                export[3].toString(),
+                workshop,
                 export[4].toString(),
                 observableSet((String[]) export[5]),
-                observableArrayList((String[]) export[6]),
+                observableArrayList(Arrays.stream((String[]) export[6]).map(img -> {
+                    if (img.contains("modz" + separatorChar + "imgs")) {
+                        var path = Path.of("imgs", workshop, img.substring(img.lastIndexOf(separatorChar)));
+                        return "file:" + rootPath.resolve(path).toAbsolutePath();
+                    }
+                    return img;
+                }).toArray(String[]::new)),
                 observableArrayList(maps),
                 observableMap(reqs),
                 observableHashMap(),

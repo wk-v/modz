@@ -44,6 +44,7 @@ public class ModzMain extends Application {
         logger = Logger.getLogger("");
     }
 
+    public static Path rootPath;
     static String webApiKey;
     static Stage mainStage;
     static Color mainColor;
@@ -51,7 +52,6 @@ public class ModzMain extends Application {
     static Image aboutLogo;
     static Image blackIcon;
     static Image colorIcon;
-    static Path rootPath;
     static int tileSize;
 
     public static void main(String[] args) {
