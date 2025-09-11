@@ -42,6 +42,7 @@ public class ModzDrag extends Popup implements ModzBean {
         cell = new ModzCell(false);
         cell.pseudoClassStateChanged(CHECKED, true);
         cell.head.getStyleClass().add("modz-cell-over");
+        cell.rate.setVisible(false);
         cell.icon.setVisible(false);
         cell.numb.setVisible(false);
 
