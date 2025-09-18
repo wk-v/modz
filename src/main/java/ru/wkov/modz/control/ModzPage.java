@@ -76,8 +76,7 @@ public class ModzPage extends Pagination implements ModzBean {
         setPageFactory(paging);
 
         var view = new ImageView();
-        view.imageProperty()
-                .bind(preview.imageProperty());
+        view.setPreserveRatio(true);
 
         var tooltip = new Tooltip();
         tooltip.setContentDisplay(GRAPHIC_ONLY);
@@ -97,6 +96,20 @@ public class ModzPage extends Pagination implements ModzBean {
 
             tooltip.show(getMainStage());
         });
+
+        preview.imageProperty().addListener(prop(false, img -> {
+            view.setImage(img);
+
+            var bounds = getPrimary().getBounds();
+
+            if (img.getHeight() < img.getWidth()) {
+                view.setFitWidth(bounds.getMaxX() - 2.0);
+                view.setFitHeight(0.0);
+            } else {
+                view.setFitWidth(0.0);
+                view.setFitHeight(bounds.getMaxY() - 2.0);
+            }
+        }));
     }
 
     public void setExpanded(boolean expanded) {
